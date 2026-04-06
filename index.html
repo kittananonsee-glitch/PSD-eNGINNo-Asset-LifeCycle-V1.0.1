@@ -1,0 +1,2358 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PSD eNGINNo — Asset Life Cycle Management</title>
+<link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@400;500;600;700&family=Sarabun:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0D1117;--bg2:#161B22;--bg3:#1C2333;--bg4:#21262D;
+  --border:#30363D;--border2:#3D444D;
+  --orange:#F97316;--orange2:#EA6C0A;--orange-dim:rgba(249,115,22,0.12);
+  --green:#22C55E;--green-dim:rgba(34,197,94,0.12);
+  --yellow:#EAB308;--yellow-dim:rgba(234,179,8,0.12);
+  --red:#EF4444;--red-dim:rgba(239,68,68,0.12);
+  --blue:#3B82F6;--blue-dim:rgba(59,130,246,0.12);
+  --purple:#A855F7;--purple-dim:rgba(168,85,247,0.12);
+  --teal:#14B8A6;--teal-dim:rgba(20,184,166,0.12);
+  --text:#E6EDF3;--text2:#8B949E;--text3:#6E7681;
+  --sidebar-w:240px;--header-h:56px;
+  --font:'Sarabun',sans-serif;--font-display:'Rajdhani',sans-serif;--font-mono:'JetBrains Mono',monospace;
+  --radius:8px;--radius-lg:12px;
+}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden}
+/* ─── SIDEBAR ─── */
+#sidebar{position:fixed;top:0;left:0;width:var(--sidebar-w);height:100vh;background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;z-index:100;overflow-y:auto}
+.sidebar-header{padding:16px 16px 12px;border-bottom:1px solid var(--border)}
+.sidebar-logo{font-family:var(--font-display);font-size:11px;font-weight:700;letter-spacing:2px;color:var(--orange);text-transform:uppercase;margin-bottom:2px}
+.sidebar-title{font-family:var(--font-display);font-size:15px;font-weight:600;color:var(--text);line-height:1.2}
+.sidebar-sub{font-size:10px;color:var(--text3);letter-spacing:1px;margin-top:2px}
+.sidebar-section{padding:12px 8px 4px;font-size:10px;font-weight:600;letter-spacing:1.5px;color:var(--text3);text-transform:uppercase;padding-left:12px}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 12px;border-radius:var(--radius);margin:1px 8px;cursor:pointer;font-size:13px;color:var(--text2);transition:all .15s;border:1px solid transparent}
+.nav-item:hover{background:var(--bg3);color:var(--text)}
+.nav-item.active{background:var(--orange-dim);color:var(--orange);border-color:rgba(249,115,22,0.25)}
+.nav-icon{width:16px;height:16px;flex-shrink:0;opacity:.7}
+.nav-item.active .nav-icon{opacity:1}
+.nav-badge{margin-left:auto;background:var(--red);color:#fff;font-size:10px;font-weight:600;padding:1px 5px;border-radius:8px;min-width:18px;text-align:center}
+.sidebar-footer{margin-top:auto;padding:12px;border-top:1px solid var(--border);font-size:11px;color:var(--text3)}
+/* ─── MAIN ─── */
+#main{margin-left:var(--sidebar-w);min-height:100vh}
+#topbar{position:sticky;top:0;height:var(--header-h);background:rgba(13,17,23,0.85);backdrop-filter:blur(12px);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 24px;gap:16px;z-index:50}
+.topbar-title{font-family:var(--font-display);font-size:18px;font-weight:600;color:var(--text)}
+.topbar-breadcrumb{font-size:12px;color:var(--text3)}
+.topbar-actions{margin-left:auto;display:flex;gap:8px;align-items:center}
+#content{padding:24px}
+/* ─── CARDS ─── */
+.card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px}
+.card-sm{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+.kpi-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px}
+.kpi{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 20px;position:relative;overflow:hidden}
+.kpi::before{content:'';position:absolute;top:0;left:0;right:0;height:2px}
+.kpi.orange::before{background:var(--orange)}
+.kpi.green::before{background:var(--green)}
+.kpi.yellow::before{background:var(--yellow)}
+.kpi.red::before{background:var(--red)}
+.kpi.blue::before{background:var(--blue)}
+.kpi.teal::before{background:var(--teal)}
+.kpi-label{font-size:11px;font-weight:600;letter-spacing:1px;text-transform:uppercase;color:var(--text3);margin-bottom:8px}
+.kpi-value{font-family:var(--font-display);font-size:28px;font-weight:700;line-height:1}
+.kpi-sub{font-size:11px;color:var(--text3);margin-top:4px}
+.kpi-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);font-size:28px;opacity:.15}
+/* ─── BUTTONS ─── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:7px 14px;border-radius:var(--radius);font-size:13px;font-family:var(--font);cursor:pointer;border:1px solid;transition:all .15s;font-weight:500}
+.btn-primary{background:var(--orange);border-color:var(--orange);color:#fff}.btn-primary:hover{background:var(--orange2);border-color:var(--orange2)}
+.btn-secondary{background:transparent;border-color:var(--border2);color:var(--text2)}.btn-secondary:hover{background:var(--bg3);color:var(--text);border-color:var(--border2)}
+.btn-success{background:transparent;border-color:var(--green);color:var(--green)}.btn-success:hover{background:var(--green-dim)}
+.btn-danger{background:transparent;border-color:var(--red);color:var(--red)}.btn-danger:hover{background:var(--red-dim)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-icon{padding:6px;border-radius:var(--radius)}
+/* ─── TABLE ─── */
+.table-wrap{overflow-x:auto;border-radius:var(--radius-lg);border:1px solid var(--border)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{background:var(--bg3);padding:10px 14px;text-align:left;font-size:11px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;color:var(--text3);border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid var(--border);color:var(--text2);vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bg3);color:var(--text)}
+/* ─── STATUS BADGES ─── */
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:20px;font-size:11px;font-weight:600;letter-spacing:.5px}
+.badge-green{background:var(--green-dim);color:var(--green)}
+.badge-yellow{background:var(--yellow-dim);color:var(--yellow)}
+.badge-red{background:var(--red-dim);color:var(--red)}
+.badge-blue{background:var(--blue-dim);color:var(--blue)}
+.badge-orange{background:var(--orange-dim);color:var(--orange)}
+.badge-gray{background:rgba(139,148,158,.12);color:var(--text2)}
+.badge-dot{width:6px;height:6px;border-radius:50%;background:currentColor}
+/* ─── LIFECYCLE STEPS ─── */
+.lifecycle-bar{display:flex;gap:0;border-radius:var(--radius-lg);overflow:hidden;margin:12px 0}
+.lc-step{flex:1;padding:10px 8px;text-align:center;font-size:11px;font-weight:600;cursor:pointer;position:relative;transition:all .2s}
+.lc-step.green{background:var(--green-dim);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.lc-step.yellow{background:var(--yellow-dim);color:var(--yellow);border:1px solid rgba(234,179,8,.2)}
+.lc-step.red{background:var(--red-dim);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.lc-step.gray{background:var(--bg3);color:var(--text3);border:1px solid var(--border)}
+.lc-step-name{font-size:10px;font-weight:700;letter-spacing:.5px;text-transform:uppercase}
+.lc-step-label{font-size:9px;opacity:.7;margin-top:1px}
+/* ─── FORMS ─── */
+.form-group{margin-bottom:14px}
+.form-label{display:block;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:6px;letter-spacing:.5px;text-transform:uppercase}
+.form-control{width:100%;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:13px;font-family:var(--font);color:var(--text);outline:none;transition:border .15s}
+.form-control:focus{border-color:var(--orange)}
+select.form-control option{background:var(--bg3)}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+/* ─── MODAL ─── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:200;display:none;align-items:center;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:24px;width:640px;max-width:95vw;max-height:90vh;overflow-y:auto}
+.modal-lg{width:800px}
+.modal-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+.modal-title{font-family:var(--font-display);font-size:18px;font-weight:600}
+/* ─── TABS ─── */
+.tabs{display:flex;gap:2px;background:var(--bg3);border-radius:var(--radius);padding:3px;margin-bottom:20px}
+.tab{padding:7px 16px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);transition:all .15s;font-weight:500}
+.tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 3px rgba(0,0,0,.4)}
+/* ─── VIEWS ─── */
+.view{display:none}
+.view.active{display:block}
+/* ─── SECTION HEADER ─── */
+.section-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:20px}
+.section-title{font-family:var(--font-display);font-size:22px;font-weight:700}
+.section-sub{font-size:12px;color:var(--text3);margin-top:2px}
+/* ─── SEARCH/FILTER ─── */
+.filter-bar{display:flex;gap:10px;margin-bottom:16px;align-items:center;flex-wrap:wrap}
+.search-input{flex:1;min-width:200px;background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius);padding:8px 12px;font-size:13px;font-family:var(--font);color:var(--text);outline:none}
+.search-input:focus{border-color:var(--orange)}
+/* ─── CHART CONTAINER ─── */
+.chart-wrap{position:relative;height:260px}
+/* ─── QR ─── */
+.qr-card{background:var(--bg3);border:1px solid var(--border);border-radius:var(--radius-lg);padding:20px;display:flex;gap:20px;align-items:flex-start}
+.qr-box{background:#fff;padding:10px;border-radius:var(--radius);flex-shrink:0}
+.qr-info{flex:1}
+/* ─── PROGRESS ─── */
+.progress{height:6px;background:var(--bg4);border-radius:3px;overflow:hidden}
+.progress-bar{height:100%;border-radius:3px;transition:width .4s}
+/* ─── UPLOAD ZONE ─── */
+.upload-zone{border:2px dashed var(--border2);border-radius:var(--radius-lg);padding:40px;text-align:center;cursor:pointer;transition:all .2s;background:var(--bg3)}
+.upload-zone:hover,.upload-zone.drag{border-color:var(--orange);background:var(--orange-dim)}
+/* ─── GRID LAYOUTS ─── */
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
+.grid-4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+/* ─── UTILITY ─── */
+.text-orange{color:var(--orange)}.text-green{color:var(--green)}.text-yellow{color:var(--yellow)}.text-red{color:var(--red)}.text-blue{color:var(--blue)}.text-teal{color:var(--teal)}
+.text-muted{color:var(--text3)}.text-secondary{color:var(--text2)}
+.fw-700{font-weight:700}.fw-600{font-weight:600}
+.ff-display{font-family:var(--font-display)}
+.ff-mono{font-family:var(--font-mono)}
+.mt-12{margin-top:12px}.mt-16{margin-top:16px}.mt-20{margin-top:20px}
+.mb-8{margin-bottom:8px}.mb-12{margin-bottom:12px}.mb-16{margin-bottom:16px}.mb-20{margin-bottom:20px}
+.flex{display:flex}.flex-center{align-items:center}.gap-8{gap:8px}.gap-12{gap:12px}.gap-16{gap:16px}
+.w-full{width:100%}.justify-between{justify-content:space-between}
+.divider{border:none;border-top:1px solid var(--border);margin:16px 0}
+.tag{display:inline-block;background:var(--bg4);border:1px solid var(--border);border-radius:4px;padding:2px 8px;font-size:11px;font-family:var(--font-mono);color:var(--text2)}
+.metric-row{display:flex;justify-content:space-between;align-items:center;padding:8px 0;border-bottom:1px solid var(--border)}
+.metric-row:last-child{border-bottom:none}
+.alert{padding:12px 16px;border-radius:var(--radius);margin-bottom:12px;font-size:13px}
+.alert-warning{background:var(--yellow-dim);border:1px solid rgba(234,179,8,.3);color:var(--yellow)}
+.alert-danger{background:var(--red-dim);border:1px solid rgba(239,68,68,.3);color:var(--red)}
+.alert-success{background:var(--green-dim);border:1px solid rgba(34,197,94,.3);color:var(--green)}
+.alert-info{background:var(--blue-dim);border:1px solid rgba(59,130,246,.3);color:var(--blue)}
+/* ─── SCROLLBAR ─── */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
+/* ─── RESPONSIVE ─── */
+@media(max-width:900px){.kpi-grid{grid-template-columns:1fr 1fr}.grid-2,.grid-3,.grid-4{grid-template-columns:1fr}}
+@media(max-width:768px){#sidebar{display:none}#main{margin-left:0}.form-row,.form-row-3{grid-template-columns:1fr}}
+/* ─── LOGIN SCREEN ─── */
+#login-screen{position:fixed;inset:0;background:var(--bg);z-index:999;display:flex;align-items:center;justify-content:center;padding:20px;transition:opacity .3s}
+#login-screen.hidden{display:none}
+.login-wrap{width:100%;max-width:440px}
+.login-logo{text-align:center;margin-bottom:28px}
+.login-brand{font-family:var(--font-display);font-size:12px;font-weight:700;letter-spacing:3px;color:var(--orange);text-transform:uppercase;margin-bottom:6px}
+.login-title{font-family:var(--font-display);font-size:30px;font-weight:700;color:var(--text);line-height:1.1}
+.login-sub{font-size:12px;color:var(--text3);margin-top:8px;letter-spacing:.5px}
+.login-card{background:var(--bg2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:28px 32px}
+.auth-tabs{display:flex;gap:2px;background:var(--bg3);border-radius:var(--radius);padding:3px;margin-bottom:22px}
+.auth-tab{flex:1;text-align:center;padding:8px;border-radius:6px;font-size:13px;cursor:pointer;color:var(--text2);transition:all .15s;font-weight:500}
+.auth-tab.active{background:var(--bg2);color:var(--text);box-shadow:0 1px 4px rgba(0,0,0,.4)}
+.login-err{background:var(--red-dim);border:1px solid rgba(239,68,68,.3);color:var(--red);font-size:13px;padding:10px 14px;border-radius:var(--radius);margin-bottom:14px;display:none}
+.login-err.show{display:block}
+.login-ok{background:var(--green-dim);border:1px solid rgba(34,197,94,.3);color:var(--green);font-size:13px;padding:10px 14px;border-radius:var(--radius);margin-bottom:14px;display:none}
+.login-ok.show{display:block}
+.login-hint{text-align:center;margin-top:14px;font-size:12px;color:var(--text3)}
+.login-version{text-align:center;margin-top:18px;font-size:11px;color:var(--text3)}
+.sidebar-user{padding:10px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px;background:var(--bg3)}
+.user-avatar{width:32px;height:32px;border-radius:50%;background:var(--orange-dim);border:1px solid rgba(249,115,22,.3);display:flex;align-items:center;justify-content:center;font-family:var(--font-display);font-size:14px;font-weight:700;color:var(--orange);flex-shrink:0}
+.user-info{flex:1;min-width:0}
+.user-name{font-size:12px;font-weight:600;color:var(--text);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.user-role-txt{font-size:10px;color:var(--text3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.logout-btn{display:flex;align-items:center;gap:6px;padding:6px 8px;border-radius:var(--radius);cursor:pointer;font-size:12px;color:var(--red);margin-bottom:6px;transition:all .15s}
+.logout-btn:hover{background:var(--red-dim)}
+</style>
+</head>
+<body>
+
+<!-- ══════════════════════════════════════════════════════
+     LOGIN SCREEN
+══════════════════════════════════════════════════════ -->
+<div id="login-screen">
+  <div class="login-wrap">
+    <div class="login-logo">
+      <div class="login-brand">PSD ● eNGINNo</div>
+      <div class="login-title">Asset Life Cycle<br>Management</div>
+      <div class="login-sub">Enterprise Asset Management Platform · v2.0 · 2026</div>
+    </div>
+    <div class="login-card">
+      <div class="auth-tabs">
+        <div class="auth-tab active" id="tab-login" onclick="switchAuthTab('login')">🔐 เข้าสู่ระบบ</div>
+        <div class="auth-tab" id="tab-reg" onclick="switchAuthTab('register')">📝 ลงทะเบียน</div>
+      </div>
+
+      <!-- LOGIN -->
+      <div id="pane-login">
+        <div class="login-err" id="login-err">Username หรือ Password ไม่ถูกต้อง</div>
+        <div class="form-group">
+          <label class="form-label">Username</label>
+          <input class="form-control" id="inp-user" placeholder="ชื่อผู้ใช้" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Password</label>
+          <input class="form-control" id="inp-pass" type="password" placeholder="รหัสผ่าน" onkeydown="if(event.key==='Enter')doLogin()">
+        </div>
+        <button class="btn btn-primary" style="width:100%;justify-content:center;padding:10px;font-size:14px;margin-top:4px" onclick="doLogin()">เข้าสู่ระบบ</button>
+        <div class="login-hint">Admin: <span style="font-family:var(--font-mono);color:var(--orange)">enginno / asset277</span></div>
+      </div>
+
+      <!-- REGISTER -->
+      <div id="pane-reg" style="display:none">
+        <div class="login-err" id="reg-err"></div>
+        <div class="login-ok" id="reg-ok">✅ ลงทะเบียนสำเร็จ! กรุณาเข้าสู่ระบบ</div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">ชื่อ-นามสกุล *</label><input class="form-control" id="reg-name" placeholder="ชื่อ นามสกุล"></div>
+          <div class="form-group"><label class="form-label">อีเมล *</label><input class="form-control" id="reg-email" type="email" placeholder="email@psd.co.th"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Stakeholder / หน่วยงาน *</label>
+          <select class="form-control" id="reg-stk" onchange="document.getElementById('reg-custom-wrap').style.display=this.value==='custom'?'block':'none'">
+            <option value="">-- เลือกหน่วยงาน --</option>
+            <option value="A1">A1 · PSD Township Management</option>
+            <option value="A2">A2 · Business Strategy and Investment</option>
+            <option value="A3">A3 · BEAT Discovery</option>
+            <option value="A4">A4 · Procurement</option>
+            <option value="A5">A5 · About Food</option>
+            <option value="A6">A6 · Live &amp; Play Business</option>
+            <option value="A7">A7 · Project Delivery</option>
+            <option value="A8">A8 · REIT Management</option>
+            <option value="A9">A9 · SAMA Garden</option>
+            <option value="A10">A10 · BHIRAJ and Beyond Venture</option>
+            <option value="A11">A11 · Workplace Management</option>
+            <option value="A12">A12 · Another Business</option>
+            <option value="custom">➕ เพิ่มหน่วยงานใหม่</option>
+          </select>
+        </div>
+        <div class="form-group" id="reg-custom-wrap" style="display:none">
+          <label class="form-label">ชื่อหน่วยงานใหม่</label>
+          <input class="form-control" id="reg-custom" placeholder="ระบุชื่อหน่วยงาน">
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label class="form-label">Username *</label><input class="form-control" id="reg-user" placeholder="ตั้ง username"></div>
+          <div class="form-group"><label class="form-label">Password *</label><input class="form-control" id="reg-pass" type="password" placeholder="อย่างน้อย 6 ตัว"></div>
+        </div>
+        <div class="form-group">
+          <label class="form-label">สิทธิ์การใช้งาน</label>
+          <select class="form-control" id="reg-role">
+            <option value="viewer">Viewer — ดูข้อมูลเท่านั้น</option>
+            <option value="inspector">Inspector — ตรวจสอบ Asset</option>
+            <option value="editor">Editor — แก้ไขข้อมูลได้</option>
+          </select>
+        </div>
+        <button class="btn btn-success" style="width:100%;justify-content:center;padding:10px;font-size:14px" onclick="doRegister()">✅ ลงทะเบียน</button>
+      </div>
+    </div>
+    <div class="login-version">PSD Engineering Department · eNGINNo Smart Analytics v2.0.0 · 2026</div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════════════════════════════
+     SIDEBAR
+══════════════════════════════════════════════════════ -->
+<nav id="sidebar">
+  <div class="sidebar-header">
+    <div class="sidebar-logo">PSD ● eNGINNo</div>
+    <div class="sidebar-title">Asset Life Cycle<br>Management</div>
+    <div class="sidebar-sub">ALM v2.0 — 2026</div>
+  </div>
+
+  <!-- User Info Panel -->
+  <div class="sidebar-user" id="sidebar-user-panel" style="display:none">
+    <div class="user-avatar" id="user-avatar-txt">A</div>
+    <div class="user-info">
+      <div class="user-name" id="user-display-name">-</div>
+      <div class="user-role-txt" id="user-display-role">-</div>
+    </div>
+  </div>
+
+  <div class="sidebar-section">Overview</div>
+  <div class="nav-item active" onclick="showView('dashboard')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+    Dashboard
+  </div>
+
+  <div class="sidebar-section">Asset Core</div>
+  <div class="nav-item" onclick="showView('assets')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1L2 4v4c0 3.3 2.5 6.4 6 7 3.5-.6 6-3.7 6-7V4L8 1z"/></svg>
+    ทะเบียนสินทรัพย์
+  </div>
+  <div class="nav-item" onclick="showView('lifecycle')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><circle cx="8" cy="8" r="7" stroke="currentColor" stroke-width="1.5" fill="none"/><path d="M8 4v4l3 2" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+    Lifecycle Tracker
+  </div>
+  <div class="nav-item" onclick="showView('qrcode')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="1" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="10" y="1" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="1" y="10" width="5" height="5" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><rect x="2.5" y="2.5" width="2" height="2"/><rect x="11.5" y="2.5" width="2" height="2"/><rect x="2.5" y="11.5" width="2" height="2"/><path d="M10 10h2v2h-2zm3 0h2v2h-2zm0 3h2v2h-2zm-3 3h2v2h-2z" fill="currentColor"/></svg>
+    QR Code Assets
+  </div>
+  <div class="nav-item" onclick="showView('inspection')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M6 2a4 4 0 100 8A4 4 0 006 2zm0 1.5a2.5 2.5 0 110 5 2.5 2.5 0 010-5z"/><path d="M9.9 9.9l3.5 3.5-1.1 1.1-3.5-3.5 1.1-1.1z"/></svg>
+    ตรวจสอบประจำปี
+    <span class="nav-badge">!</span>
+  </div>
+  <div class="nav-item" onclick="showView('valuation')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a7 7 0 100 14A7 7 0 008 1zm1 10.5H7V10h2v1.5zm0-3H7V4h2v4.5z"/></svg>
+    Value Add / มูลค่า
+  </div>
+
+  <div class="sidebar-section">Framework ALM</div>
+  <div class="nav-item" onclick="showView('workrequest')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 2h12v12H2V2zm2 3v1h8V5H4zm0 3v1h8V8H4zm0 3v1h5v-1H4z"/></svg>
+    Work Request (WR)
+  </div>
+  <div class="nav-item" onclick="showView('operation')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1l1.5 3 3.5.5-2.5 2.5.6 3.5L8 9l-3.1 1.5.6-3.5L3 4.5l3.5-.5L8 1z"/></svg>
+    Operation (OPT)
+  </div>
+  <div class="nav-item" onclick="showView('ppm')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><rect x="1" y="3" width="14" height="12" rx="1" fill="none" stroke="currentColor" stroke-width="1.5"/><path d="M5 1v4M11 1v4M1 7h14" stroke="currentColor" stroke-width="1.5" fill="none" stroke-linecap="round"/></svg>
+    Preventive Maint. (PPM)
+  </div>
+  <div class="nav-item" onclick="showView('contract')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M3 2h10v12H3V2zm2 3h6M5 8h6M5 11h4" stroke="currentColor" stroke-width="1.3" fill="none" stroke-linecap="round"/></svg>
+    MA Contract
+  </div>
+  <div class="nav-item" onclick="showView('inventory')">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M2 12V6l6-4 6 4v6l-6 3-6-3z" fill="none" stroke="currentColor" stroke-width="1.3"/><path d="M8 2v13M2 6l6 4 6-4" stroke="currentColor" stroke-width="1.3" fill="none"/></svg>
+    Inventory (คลังวัสดุ)
+  </div>
+
+  <div class="sidebar-section">System</div>
+  <div class="nav-item" id="nav-admin" onclick="showView('adminmgmt')" style="display:none">
+    <svg class="nav-icon" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1a3 3 0 100 6A3 3 0 008 1zM3 13c0-2.8 2.2-5 5-5s5 2.2 5 5H3z"/><circle cx="13" cy="5" r="3" fill="var(--orange)"/><text x="13" y="7" text-anchor="middle" font-size="4" fill="white" font-weight="bold" id="admin-badge-icon">!</text></svg>
+    Admin Management
+    <span class="nav-badge" id="nb-admin" style="display:none">0</span>
+  </div>
+
+  <div class="sidebar-footer">
+    <div class="logout-btn" onclick="doLogout()">⬡ ออกจากระบบ</div>
+    <div style="color:var(--orange);font-family:var(--font-display);font-size:11px;font-weight:700;margin-bottom:4px">PSD Engineering Dept.</div>
+    <div>eNGINNo Smart Analytics</div>
+    <div style="margin-top:4px">v2.0.0 — 2026</div>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════════════════
+     MAIN CONTENT
+══════════════════════════════════════════════════════ -->
+<main id="main">
+  <div id="topbar">
+    <div>
+      <div class="topbar-title" id="topbar-title">Dashboard</div>
+      <div class="topbar-breadcrumb" id="topbar-breadcrumb">PSD eNGINNo ALM › Overview</div>
+    </div>
+    <div class="topbar-actions">
+      <span id="clock" style="font-family:var(--font-mono);font-size:12px;color:var(--text3)"></span>
+      <button class="btn btn-primary btn-sm" onclick="openModal('addAssetModal')">+ เพิ่มสินทรัพย์</button>
+      <button class="btn btn-secondary btn-sm" onclick="showView('assets')">📂 ทะเบียน</button>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- ══════════════ DASHBOARD ══════════════ -->
+    <div id="view-dashboard" class="view active">
+      <div class="section-header">
+        <div>
+          <div class="section-title">📊 Asset Overview Dashboard — 2026</div>
+          <div class="section-sub">สรุปภาพรวมสินทรัพย์ทั้งหมด — อัปเดตแบบ Real-time · PSD Engineering</div>
+        </div>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm" onclick="exportDashboard()">⬇ Export</button>
+          <button class="btn btn-secondary btn-sm" onclick="refreshDashboard()">↻ Refresh</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi orange"><div class="kpi-label">Total Assets</div><div class="kpi-value ff-display" id="kpi-total">0</div><div class="kpi-sub">สินทรัพย์ทั้งหมด</div><div class="kpi-icon">🏭</div></div>
+        <div class="kpi green"><div class="kpi-label">Active (Green)</div><div class="kpi-value ff-display text-green" id="kpi-green">0</div><div class="kpi-sub">ใช้งานปกติ</div><div class="kpi-icon">✅</div></div>
+        <div class="kpi yellow"><div class="kpi-label">Warning (Yellow)</div><div class="kpi-value ff-display text-yellow" id="kpi-yellow">0</div><div class="kpi-sub">ต้องติดตาม</div><div class="kpi-icon">⚠️</div></div>
+        <div class="kpi red"><div class="kpi-label">Critical (Red)</div><div class="kpi-value ff-display text-red" id="kpi-red">0</div><div class="kpi-sub">ต้องดำเนินการ</div><div class="kpi-icon">🚨</div></div>
+      </div>
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(4,1fr)">
+        <div class="kpi blue"><div class="kpi-label">Total Asset Value</div><div class="kpi-value ff-display" style="font-size:20px" id="kpi-total-val">฿0</div><div class="kpi-sub">มูลค่ารวมทั้งหมด</div></div>
+        <div class="kpi teal"><div class="kpi-label">Book Value (NBV)</div><div class="kpi-value ff-display" style="font-size:20px" id="kpi-nbv">฿0</div><div class="kpi-sub">มูลค่าตามบัญชี</div></div>
+        <div class="kpi orange"><div class="kpi-label">Open WR</div><div class="kpi-value ff-display" id="kpi-wr">0</div><div class="kpi-sub">งานแจ้งซ่อมค้างอยู่</div></div>
+        <div class="kpi yellow"><div class="kpi-label">PPM Due This Month</div><div class="kpi-value ff-display" id="kpi-ppm">0</div><div class="kpi-sub">แผน PM เดือน ม.ค. 2026</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="flex flex-center justify-between mb-16">
+            <div><div style="font-family:var(--font-display);font-size:15px;font-weight:600">Asset Status Distribution</div><div class="text-muted" style="font-size:11px">สัดส่วนสถานะสินทรัพย์</div></div>
+          </div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chartStatus"></canvas></div>
+        </div>
+        <div class="card">
+          <div class="flex flex-center justify-between mb-16">
+            <div><div style="font-family:var(--font-display);font-size:15px;font-weight:600">Asset by Department</div><div class="text-muted" style="font-size:11px">สินทรัพย์แยกตามแผนก</div></div>
+          </div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chartDept"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-2 mt-16">
+        <div class="card">
+          <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:16px">Asset Value & Depreciation</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chartValue"></canvas></div>
+        </div>
+        <div class="card">
+          <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:12px">Lifecycle Phase Distribution</div>
+          <div class="chart-wrap" style="height:220px"><canvas id="chartLifecycle"></canvas></div>
+        </div>
+      </div>
+
+      <div class="grid-2 mt-16">
+        <div class="card">
+          <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:12px">⚠ Recent Alerts</div>
+          <div id="alert-list"></div>
+        </div>
+        <div class="card">
+          <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:12px">📋 Recent Work Requests</div>
+          <div id="wr-recent-list"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ ASSET REGISTER ══════════════ -->
+    <div id="view-assets" class="view">
+      <div class="section-header">
+        <div><div class="section-title">🏭 ทะเบียนสินทรัพย์</div><div class="section-sub">Asset Register — บริหารจัดการข้อมูลสินทรัพย์ทั้งหมด</div></div>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm" onclick="openModal('importModal')">📂 Import Excel</button>
+          <button class="btn btn-secondary btn-sm" onclick="exportAssets()">⬇ Export Excel</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('addAssetModal')">+ เพิ่มสินทรัพย์</button>
+        </div>
+      </div>
+      <div class="filter-bar">
+        <input class="search-input" placeholder="🔍 ค้นหา รหัส / ชื่อ / แผนก / สถานที่..." oninput="filterAssets(this.value)">
+        <select class="form-control" style="width:140px" onchange="filterByStatus(this.value)">
+          <option value="">ทุกสถานะ</option>
+          <option value="green">🟢 Green</option>
+          <option value="yellow">🟡 Yellow</option>
+          <option value="red">🔴 Red</option>
+        </select>
+        <select class="form-control" style="width:150px" onchange="filterByDept(this.value)">
+          <option value="">ทุกแผนก</option>
+          <option>วิศวกรรม</option><option>ผลิต</option><option>คุณภาพ</option><option>ซ่อมบำรุง</option><option>สาธารณูปโภค</option>
+        </select>
+        <select class="form-control" style="width:150px" onchange="filterByPhase(this.value)">
+          <option value="">ทุก Lifecycle</option>
+          <option>Planning</option><option>Acquisition</option><option>Operation</option><option>Maintenance</option><option>Disposal</option>
+        </select>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Asset ID</th><th>ชื่อสินทรัพย์</th><th>ประเภท</th><th>แผนก</th><th>สถานที่</th>
+              <th>Lifecycle Phase</th><th>ประสิทธิภาพ</th><th>สถานะ</th><th>NBV (฿)</th><th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="asset-table-body"></tbody>
+        </table>
+      </div>
+      <div id="asset-pagination" class="flex flex-center gap-8 mt-16" style="justify-content:center"></div>
+    </div>
+
+    <!-- ══════════════ LIFECYCLE TRACKER ══════════════ -->
+    <div id="view-lifecycle" class="view">
+      <div class="section-header">
+        <div><div class="section-title">🔄 Asset Lifecycle Tracker</div><div class="section-sub">ติดตามวงจรชีวิตสินทรัพย์ทั้ง 6 ระยะ พร้อม Status 3 ระดับ</div></div>
+        <select class="form-control" style="width:220px" id="lc-asset-select" onchange="loadLifecycle(this.value)">
+          <option value="">-- เลือกสินทรัพย์ --</option>
+        </select>
+      </div>
+
+      <div class="card mb-16">
+        <div style="font-family:var(--font-display);font-size:13px;font-weight:600;color:var(--text3);letter-spacing:1px;margin-bottom:12px">LIFECYCLE STAGES</div>
+        <div class="lifecycle-bar" id="lc-bar">
+          <div class="lc-step gray"><div class="lc-step-name">Planning</div><div class="lc-step-label">วางแผน</div></div>
+          <div class="lc-step gray"><div class="lc-step-name">Acquisition</div><div class="lc-step-label">จัดหา</div></div>
+          <div class="lc-step gray"><div class="lc-step-name">Operation</div><div class="lc-step-label">ใช้งาน</div></div>
+          <div class="lc-step gray"><div class="lc-step-name">Maintenance</div><div class="lc-step-label">บำรุงรักษา</div></div>
+          <div class="lc-step gray"><div class="lc-step-name">Disposal</div><div class="lc-step-label">จำหน่าย</div></div>
+          <div class="lc-step gray"><div class="lc-step-name">Value Add</div><div class="lc-step-label">มูลค่า</div></div>
+        </div>
+      </div>
+
+      <div class="grid-2" id="lc-detail-grid">
+        <div class="card-sm" id="lc-planning"><div style="font-family:var(--font-display);font-weight:600;color:var(--text3)">1. Planning — วางแผน</div><div style="color:var(--text3);font-size:12px;margin-top:8px">กรุณาเลือกสินทรัพย์เพื่อดูรายละเอียด</div></div>
+        <div class="card-sm" id="lc-acquisition"><div style="font-family:var(--font-display);font-weight:600;color:var(--text3)">2. Acquisition — จัดหา</div></div>
+        <div class="card-sm" id="lc-operation"><div style="font-family:var(--font-display);font-weight:600;color:var(--text3)">3. Operation — ใช้งาน</div></div>
+        <div class="card-sm" id="lc-maintenance"><div style="font-family:var(--font-display);font-weight:600;color:var(--text3)">4. Maintenance — บำรุงรักษา</div></div>
+        <div class="card-sm" id="lc-disposal"><div style="font-family:var(--font-display);font-weight:600;color:var(--text3)">5. Disposal — จำหน่าย</div></div>
+        <div class="card-sm" id="lc-valueadd"><div style="font-family:var(--font-display);font-weight:600;color:var(--text3)">6. Value Add — มูลค่าคงเหลือ</div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════ QR CODE ══════════════ -->
+    <div id="view-qrcode" class="view">
+      <div class="section-header">
+        <div><div class="section-title">📱 QR Code Assets</div><div class="section-sub">สร้างและพิมพ์ QR Code สำหรับแต่ละสินทรัพย์</div></div>
+        <button class="btn btn-primary btn-sm" onclick="printAllQR()">🖨 Print All QR</button>
+      </div>
+      <div class="filter-bar">
+        <input class="search-input" placeholder="🔍 ค้นหาสินทรัพย์..." oninput="filterQR(this.value)">
+        <select class="form-control" style="width:150px" onchange="filterQRDept(this.value)">
+          <option value="">ทุกแผนก</option>
+          <option>วิศวกรรม</option><option>ผลิต</option><option>คุณภาพ</option><option>ซ่อมบำรุง</option><option>สาธารณูปโภค</option>
+        </select>
+      </div>
+      <div id="qr-grid" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:16px"></div>
+    </div>
+
+    <!-- ══════════════ ANNUAL INSPECTION ══════════════ -->
+    <div id="view-inspection" class="view">
+      <div class="section-header">
+        <div><div class="section-title">🔍 ระบบตรวจสอบ Asset ประจำปี</div><div class="section-sub">Annual Asset Verification — สแกน QR Code เพื่ออัปเดตสถานะ</div></div>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm" onclick="openModal('inspectModal')">📱 สแกน QR (ทดสอบ)</button>
+          <button class="btn btn-primary btn-sm" onclick="exportInspection()">⬇ Export Report</button>
+        </div>
+      </div>
+
+      <div class="grid-3 mb-16">
+        <div class="kpi green"><div class="kpi-label">ตรวจแล้ว</div><div class="kpi-value ff-display text-green" id="insp-done">0</div></div>
+        <div class="kpi yellow"><div class="kpi-label">ยังไม่ตรวจ</div><div class="kpi-value ff-display text-yellow" id="insp-pending">0</div></div>
+        <div class="kpi red"><div class="kpi-label">ไม่พบ / ผิดปกติ</div><div class="kpi-value ff-display text-red" id="insp-issue">0</div></div>
+      </div>
+
+      <div class="card mb-16">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:12px">ความคืบหน้าการตรวจสอบประจำปี <span id="insp-year">2026</span></div>
+        <div class="progress"><div class="progress-bar" id="insp-progress" style="width:0%;background:var(--green)"></div></div>
+        <div class="text-muted mt-12" style="font-size:12px" id="insp-progress-label">0 / 0 รายการ</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Asset ID</th><th>ชื่อสินทรัพย์</th><th>แผนก</th><th>สถานที่</th><th>สถานะทะเบียน</th><th>ผลตรวจสอบ</th><th>วันที่ตรวจ</th><th>ผู้ตรวจ</th><th>หมายเหตุ</th><th>Actions</th></tr></thead>
+          <tbody id="inspection-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════ VALUATION ══════════════ -->
+    <div id="view-valuation" class="view">
+      <div class="section-header">
+        <div><div class="section-title">💰 Value Add — มูลค่าสินทรัพย์</div><div class="section-sub">คำนวณค่าเสื่อมราคา มูลค่า ณ ปัจจุบัน และมูลค่าคงเหลือ</div></div>
+        <button class="btn btn-secondary btn-sm" onclick="openModal('calcDepModal')">🧮 คำนวณค่าเสื่อม</button>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi blue"><div class="kpi-label">Original Cost</div><div class="kpi-value ff-display" style="font-size:20px" id="val-cost">฿0</div><div class="kpi-sub">ราคาซื้อรวม</div></div>
+        <div class="kpi teal"><div class="kpi-label">Accumulated Dep.</div><div class="kpi-value ff-display" style="font-size:20px" id="val-dep">฿0</div><div class="kpi-sub">ค่าเสื่อมสะสม</div></div>
+        <div class="kpi green"><div class="kpi-label">Net Book Value</div><div class="kpi-value ff-display" style="font-size:20px" id="val-nbv">฿0</div><div class="kpi-sub">มูลค่าสุทธิตามบัญชี</div></div>
+        <div class="kpi orange"><div class="kpi-label">Avg. Asset Age</div><div class="kpi-value ff-display" id="val-age">0 ปี</div><div class="kpi-sub">อายุเฉลี่ย</div></div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:16px">Depreciation Schedule</div>
+          <div class="chart-wrap"><canvas id="chartDepreciation"></canvas></div>
+        </div>
+        <div class="card">
+          <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:12px">Asset Efficiency (ประสิทธิภาพ)</div>
+          <div class="chart-wrap"><canvas id="chartEfficiency"></canvas></div>
+        </div>
+      </div>
+
+      <div class="card mt-16">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:12px">รายการมูลค่าสินทรัพย์แยกรายการ</div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Asset ID</th><th>ชื่อ</th><th>ราคาซื้อ</th><th>วันที่ซื้อ</th><th>อายุการใช้งาน</th><th>อายุปัจจุบัน</th><th>ค่าเสื่อม/ปี</th><th>ค่าเสื่อมสะสม</th><th>NBV</th><th>ประสิทธิภาพ</th></tr></thead>
+            <tbody id="valuation-table"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ══════════════ WORK REQUEST ══════════════ -->
+    <div id="view-workrequest" class="view">
+      <div class="section-header">
+        <div><div class="section-title">🔧 Work Request System (WR)</div><div class="section-sub">รับงาน → ตรวจสอบ → แก้ไข → อะไหล่ → ปิดงาน → MTTR</div></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('addWRModal')">+ สร้าง Work Request</button>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi orange"><div class="kpi-label">Open WR</div><div class="kpi-value ff-display text-orange" id="wr-open">0</div></div>
+        <div class="kpi blue"><div class="kpi-label">In Progress</div><div class="kpi-value ff-display text-blue" id="wr-inprog">0</div></div>
+        <div class="kpi green"><div class="kpi-label">Closed (Month)</div><div class="kpi-value ff-display text-green" id="wr-closed">0</div></div>
+        <div class="kpi teal"><div class="kpi-label">Avg MTTR (hrs)</div><div class="kpi-value ff-display text-teal" id="wr-mttr">0</div></div>
+      </div>
+
+      <div class="grid-2 mb-16">
+        <div class="card">
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:12px">WR Status Flow</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="chartWR"></canvas></div>
+        </div>
+        <div class="card">
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:12px">MTTR Trend (30 วัน)</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="chartMTTR"></canvas></div>
+        </div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="filterWR('all',this)">ทั้งหมด</div>
+        <div class="tab" onclick="filterWR('open',this)">Open</div>
+        <div class="tab" onclick="filterWR('inprogress',this)">In Progress</div>
+        <div class="tab" onclick="filterWR('closed',this)">Closed</div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>WR No.</th><th>Asset ID</th><th>ปัญหา / อาการ</th><th>ประเภทงาน</th><th>ผู้แจ้ง</th><th>ผู้รับผิดชอบ</th><th>วันที่แจ้ง</th><th>วันปิดงาน</th><th>MTTR</th><th>อะไหล่</th><th>สถานะ</th><th>Actions</th></tr></thead>
+          <tbody id="wr-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════ OPERATION ══════════════ -->
+    <div id="view-operation" class="view">
+      <div class="section-header">
+        <div><div class="section-title">⚙️ Operation System (OPT)</div><div class="section-sub">แผนตรวจสอบรายวัน/รายชั่วโมง — Availability Calculation</div></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('addOptModal')">+ บันทึกผลการเดินระบบ</button>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi green"><div class="kpi-label">Availability (%)</div><div class="kpi-value ff-display text-green" id="opt-avail">98.5%</div></div>
+        <div class="kpi blue"><div class="kpi-label">Uptime Today (hrs)</div><div class="kpi-value ff-display text-blue" id="opt-uptime">20.4</div></div>
+        <div class="kpi red"><div class="kpi-label">Downtime Today</div><div class="kpi-value ff-display text-red" id="opt-down">3.6h</div></div>
+        <div class="kpi yellow"><div class="kpi-label">Alerts Today</div><div class="kpi-value ff-display text-yellow" id="opt-alerts">2</div></div>
+      </div>
+
+      <div class="card mb-16">
+        <div style="font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:12px">Availability Trend (30 วัน)</div>
+        <div class="chart-wrap" style="height:200px"><canvas id="chartAvail"></canvas></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>วันที่</th><th>เวลา</th><th>Asset ID</th><th>Parameter</th><th>ค่าที่วัดได้</th><th>ค่ามาตรฐาน</th><th>หน่วย</th><th>สถานะ</th><th>ผู้บันทึก</th><th>หมายเหตุ</th></tr></thead>
+          <tbody id="opt-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════ PPM ══════════════ -->
+    <div id="view-ppm" class="view">
+      <div class="section-header">
+        <div><div class="section-title">📅 Preventive Maintenance (PPM)</div><div class="section-sub">แผนบำรุงรักษาเชิงป้องกัน — MTBF & Reliability</div></div>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm" onclick="showPPMPlan('month')">แผนเดือน</button>
+          <button class="btn btn-secondary btn-sm" onclick="showPPMPlan('year')">แผนปี</button>
+          <button class="btn btn-primary btn-sm" onclick="openModal('addPPMModal')">+ เพิ่มแผน PM</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi green"><div class="kpi-label">MTBF (hrs)</div><div class="kpi-value ff-display text-green" id="ppm-mtbf">1,240</div></div>
+        <div class="kpi teal"><div class="kpi-label">Reliability (%)</div><div class="kpi-value ff-display text-teal" id="ppm-rel">94.2</div></div>
+        <div class="kpi orange"><div class="kpi-label">PM Completed</div><div class="kpi-value ff-display text-orange" id="ppm-done">0</div></div>
+        <div class="kpi yellow"><div class="kpi-label">PM Overdue</div><div class="kpi-value ff-display text-yellow" id="ppm-over">0</div></div>
+      </div>
+
+      <div class="grid-2 mb-16">
+        <div class="card">
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:12px">MTBF Trend</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="chartMTBF"></canvas></div>
+        </div>
+        <div class="card">
+          <div style="font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:12px">PM Compliance (%)</div>
+          <div class="chart-wrap" style="height:200px"><canvas id="chartPMComp"></canvas></div>
+        </div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>PM No.</th><th>Asset ID</th><th>ชื่องาน PM</th><th>ความถี่</th><th>แผน</th><th>ผลจริง</th><th>ผู้รับผิดชอบ</th><th>ค่าที่วัด</th><th>มาตรฐาน</th><th>สถานะ</th><th>MTBF</th><th>Actions</th></tr></thead>
+          <tbody id="ppm-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════ MA CONTRACT ══════════════ -->
+    <div id="view-contract" class="view">
+      <div class="section-header">
+        <div><div class="section-title">📄 MA Contract System</div><div class="section-sub">ระบบสัญญาบริการ — แผนเดือน/ปี การตรวจสอบ</div></div>
+        <button class="btn btn-primary btn-sm" onclick="openModal('addMAModal')">+ เพิ่มสัญญา MA</button>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi blue"><div class="kpi-label">Active Contracts</div><div class="kpi-value ff-display text-blue" id="ma-active">0</div></div>
+        <div class="kpi yellow"><div class="kpi-label">Expiring Soon</div><div class="kpi-value ff-display text-yellow" id="ma-expire">0</div></div>
+        <div class="kpi red"><div class="kpi-label">Expired</div><div class="kpi-value ff-display text-red" id="ma-expired">0</div></div>
+        <div class="kpi orange"><div class="kpi-label">Total Value</div><div class="kpi-value ff-display" style="font-size:18px" id="ma-value">฿0</div></div>
+      </div>
+
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Contract No.</th><th>Asset</th><th>Vendor</th><th>ประเภทสัญญา</th><th>วันเริ่ม</th><th>วันหมดอายุ</th><th>มูลค่า</th><th>ความถี่ PM</th><th>สถานะ</th><th>Actions</th></tr></thead>
+          <tbody id="ma-table"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ══════════════ INVENTORY ══════════════ -->
+    <div id="view-inventory" class="view">
+      <div class="section-header">
+        <div><div class="section-title">📦 Inventory System — คลังวัสดุ</div><div class="section-sub">รับเข้า/จ่ายออก — ROP Calculation — มูลค่าคงเหลือ</div></div>
+        <div class="flex gap-8">
+          <button class="btn btn-success btn-sm" onclick="openModal('receiveModal')">+ รับเข้าคลัง</button>
+          <button class="btn btn-danger btn-sm" onclick="openModal('issueModal')">- จ่ายออกคลัง</button>
+          <button class="btn btn-secondary btn-sm" onclick="openModal('addPartModal')">+ เพิ่มรายการ</button>
+        </div>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi blue"><div class="kpi-label">Total SKUs</div><div class="kpi-value ff-display text-blue" id="inv-skus">0</div></div>
+        <div class="kpi green"><div class="kpi-label">Total Value</div><div class="kpi-value ff-display" style="font-size:18px" id="inv-value">฿0</div></div>
+        <div class="kpi red"><div class="kpi-label">Below ROP</div><div class="kpi-value ff-display text-red" id="inv-rop">0</div></div>
+        <div class="kpi yellow"><div class="kpi-label">Pending PO</div><div class="kpi-value ff-display text-yellow" id="inv-po">0</div></div>
+      </div>
+
+      <div class="tabs">
+        <div class="tab active" onclick="showInventoryTab('items',this)">รายการอะไหล่</div>
+        <div class="tab" onclick="showInventoryTab('transactions',this)">ประวัติรับ-จ่าย</div>
+        <div class="tab" onclick="showInventoryTab('rop',this)">ROP Analysis</div>
+      </div>
+
+      <div id="inv-items">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Part No.</th><th>ชื่ออะไหล่</th><th>ประเภท</th><th>คลัง</th><th>คงเหลือ</th><th>หน่วย</th><th>ROP</th><th>EOQ</th><th>ราคาต่อหน่วย</th><th>มูลค่าคงเหลือ</th><th>สถานะ</th><th>Actions</th></tr></thead>
+            <tbody id="inv-table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="inv-transactions" style="display:none">
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>วันที่</th><th>เวลา</th><th>Part No.</th><th>ชื่ออะไหล่</th><th>ประเภท</th><th>จำนวน</th><th>อ้างอิง</th><th>ผู้ดำเนินการ</th><th>หมายเหตุ</th></tr></thead>
+            <tbody id="inv-tx-table"></tbody>
+          </table>
+        </div>
+      </div>
+      <div id="inv-rop" style="display:none">
+        <div class="card mb-16"><div style="font-family:var(--font-display);font-size:14px;font-weight:600;margin-bottom:12px">ROP Analysis — วิเคราะห์จุดสั่งซื้อ</div><div class="chart-wrap" style="height:250px"><canvas id="chartROP"></canvas></div></div>
+      </div>
+    </div>
+
+    <!-- ══════════════ ADMIN MANAGEMENT ══════════════ -->
+    <div id="view-adminmgmt" class="view">
+      <div class="section-header">
+        <div>
+          <div class="section-title">👤 Admin Management</div>
+          <div class="section-sub">อนุมัติ / ปฏิเสธ ผู้ใช้งานที่ลงทะเบียน — เฉพาะ Admin เท่านั้น</div>
+        </div>
+      </div>
+
+      <div class="kpi-grid" style="grid-template-columns:repeat(3,1fr)">
+        <div class="kpi yellow"><div class="kpi-label">รออนุมัติ</div><div class="kpi-value ff-display text-yellow" id="adm-pending">0</div></div>
+        <div class="kpi green"><div class="kpi-label">อนุมัติแล้ว</div><div class="kpi-value ff-display text-green" id="adm-approved">0</div></div>
+        <div class="kpi red"><div class="kpi-label">ปฏิเสธ</div><div class="kpi-value ff-display text-red" id="adm-rejected">0</div></div>
+      </div>
+
+      <!-- Pending Approval -->
+      <div class="card mb-16">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:14px">
+          ⏳ รออนุมัติ
+          <span class="badge badge-yellow" id="adm-pending-badge" style="margin-left:8px">0 รายการ</span>
+        </div>
+        <div id="pending-empty" class="text-muted" style="font-size:13px;padding:16px;text-align:center">ไม่มีผู้ใช้รออนุมัติ ✅</div>
+        <div class="table-wrap" id="pending-table-wrap" style="display:none">
+          <table>
+            <thead>
+              <tr><th>ชื่อ-นามสกุล</th><th>Username</th><th>Email</th><th>Stakeholder</th><th>สิทธิ์</th><th>วันที่สมัคร</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="pending-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- All Users -->
+      <div class="card">
+        <div style="font-family:var(--font-display);font-size:15px;font-weight:600;margin-bottom:14px">👥 ผู้ใช้งานทั้งหมด</div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>ชื่อ-นามสกุล</th><th>Username</th><th>Email</th><th>Stakeholder</th><th>สิทธิ์</th><th>สถานะ</th><th>วันที่สมัคร</th><th>Actions</th></tr>
+            </thead>
+            <tbody id="allusers-table-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- end #content -->
+</main>
+
+<!-- ══════════════════════════════════════════════════════
+     MODALS
+══════════════════════════════════════════════════════ -->
+
+<!-- ADD ASSET MODAL -->
+<div class="modal-overlay" id="addAssetModal">
+  <div class="modal modal-lg">
+    <div class="modal-header">
+      <div class="modal-title">🏭 เพิ่ม / แก้ไขสินทรัพย์</div>
+      <button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('addAssetModal')">✕</button>
+    </div>
+    <div class="tabs" style="margin-bottom:16px">
+      <div class="tab active" onclick="showAssetTab('general',this)">ข้อมูลทั่วไป</div>
+      <div class="tab" onclick="showAssetTab('technical',this)">ข้อมูลเทคนิค</div>
+      <div class="tab" onclick="showAssetTab('financial',this)">การเงิน</div>
+    </div>
+    <div id="asset-tab-general">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Asset ID *</label><input class="form-control" id="f-id" placeholder="เช่น AST-2025-001"></div>
+        <div class="form-group"><label class="form-label">ชื่อสินทรัพย์ *</label><input class="form-control" id="f-name" placeholder="ชื่อเครื่องจักร/อุปกรณ์"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">ประเภทสินทรัพย์</label>
+          <select class="form-control" id="f-type"><option>เครื่องจักร</option><option>ยานพาหนะ</option><option>อุปกรณ์ IT</option><option>เครื่องมือวัด</option><option>อาคาร/โครงสร้าง</option><option>อื่นๆ</option></select>
+        </div>
+        <div class="form-group"><label class="form-label">แผนก</label>
+          <select class="form-control" id="f-dept"><option>วิศวกรรม</option><option>ผลิต</option><option>คุณภาพ</option><option>ซ่อมบำรุง</option><option>สาธารณูปโภค</option></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">สถานที่ / ตำแหน่ง</label><input class="form-control" id="f-location" placeholder="เช่น อาคาร A ชั้น 2"></div>
+        <div class="form-group"><label class="form-label">Lifecycle Phase</label>
+          <select class="form-control" id="f-phase"><option>Planning</option><option>Acquisition</option><option>Operation</option><option>Maintenance</option><option>Disposal</option></select>
+        </div>
+      </div>
+    </div>
+    <div id="asset-tab-technical" style="display:none">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">ยี่ห้อ / Brand</label><input class="form-control" id="f-brand" placeholder="ยี่ห้อ"></div>
+        <div class="form-group"><label class="form-label">รุ่น / Model</label><input class="form-control" id="f-model" placeholder="รุ่น"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">Serial Number</label><input class="form-control" id="f-serial" placeholder="S/N"></div>
+        <div class="form-group"><label class="form-label">อายุการใช้งาน (ปี)</label><input class="form-control" id="f-life" type="number" placeholder="10" value="10"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">ประสิทธิภาพ (%)</label><input class="form-control" id="f-eff" type="number" placeholder="85" value="85" min="0" max="100"></div>
+        <div class="form-group"><label class="form-label">สถานะ</label>
+          <select class="form-control" id="f-status"><option value="green">🟢 Green — ปกติ</option><option value="yellow">🟡 Yellow — ติดตาม</option><option value="red">🔴 Red — วิกฤต</option></select>
+        </div>
+      </div>
+    </div>
+    <div id="asset-tab-financial" style="display:none">
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">ราคาซื้อ (฿)</label><input class="form-control" id="f-cost" type="number" placeholder="0"></div>
+        <div class="form-group"><label class="form-label">วันที่ซื้อ</label><input class="form-control" id="f-buydate" type="date"></div>
+      </div>
+      <div class="form-row">
+        <div class="form-group"><label class="form-label">มูลค่าซาก (฿)</label><input class="form-control" id="f-salvage" type="number" placeholder="0" value="0"></div>
+        <div class="form-group"><label class="form-label">วิธีคิดค่าเสื่อม</label>
+          <select class="form-control" id="f-depmethod"><option>Straight Line</option><option>Double Declining</option><option>Sum of Years</option></select>
+        </div>
+      </div>
+      <div class="form-group"><label class="form-label">หมายเหตุ</label><textarea class="form-control" id="f-note" rows="2" placeholder="รายละเอียดเพิ่มเติม"></textarea></div>
+    </div>
+    <div class="flex gap-8 mt-20" style="justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('addAssetModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveAsset()">💾 บันทึกสินทรัพย์</button>
+    </div>
+  </div>
+</div>
+
+<!-- IMPORT EXCEL MODAL -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📂 Import ข้อมูลจาก Excel</div>
+      <button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('importModal')">✕</button>
+    </div>
+    <div class="alert alert-info mb-16">📋 รูปแบบไฟล์ Excel: คอลัมน์ต้องมี Asset ID, ชื่อสินทรัพย์, ประเภท, แผนก, สถานที่, ราคาซื้อ, วันที่ซื้อ, อายุการใช้งาน</div>
+    <div class="upload-zone" id="upload-zone" onclick="document.getElementById('file-input').click()" ondrop="handleDrop(event)" ondragover="handleDragOver(event)" ondragleave="this.classList.remove('drag')">
+      <div style="font-size:32px;margin-bottom:8px">📂</div>
+      <div style="font-family:var(--font-display);font-size:16px;font-weight:600;margin-bottom:4px">คลิกหรือลากไฟล์ Excel มาวางที่นี่</div>
+      <div class="text-muted" style="font-size:12px">รองรับ .xlsx, .xls, .csv</div>
+    </div>
+    <input type="file" id="file-input" accept=".xlsx,.xls,.csv" style="display:none" onchange="handleFileImport(this)">
+    <div id="import-preview" style="margin-top:16px;display:none">
+      <div class="alert alert-success" id="import-result"></div>
+      <div class="table-wrap" style="max-height:250px;overflow-y:auto"><table><thead id="import-thead"></thead><tbody id="import-tbody"></tbody></table></div>
+    </div>
+    <div class="flex gap-8 mt-20" style="justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('importModal')">ยกเลิก</button>
+      <button class="btn btn-primary" id="confirm-import-btn" onclick="confirmImport()" style="display:none">✅ ยืนยัน Import</button>
+    </div>
+  </div>
+</div>
+
+<!-- INSPECT MODAL -->
+<div class="modal-overlay" id="inspectModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📱 ตรวจสอบสินทรัพย์ (QR Scan)</div>
+      <button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('inspectModal')">✕</button>
+    </div>
+    <div class="form-group"><label class="form-label">Asset ID (สแกน QR หรือพิมพ์)</label><input class="form-control" id="insp-assetid" placeholder="เช่น AST-2025-001" oninput="loadInspectAsset(this.value)"></div>
+    <div id="inspect-info" style="display:none">
+      <div class="card-sm mb-12" id="inspect-asset-card"></div>
+      <div class="form-group"><label class="form-label">ผลการตรวจสอบ</label>
+        <select class="form-control" id="insp-result">
+          <option value="found">✅ พบและตรงตามทะเบียน</option>
+          <option value="moved">📍 พบแต่เปลี่ยนสถานที่</option>
+          <option value="damaged">⚠ พบแต่ชำรุด/เสียหาย</option>
+          <option value="missing">❌ ไม่พบสินทรัพย์</option>
+        </select>
+      </div>
+      <div class="form-row" id="insp-location-row" style="display:none">
+        <div class="form-group"><label class="form-label">สถานที่จริง (ใหม่)</label><input class="form-control" id="insp-new-location" placeholder="สถานที่ที่พบจริง"></div>
+        <div class="form-group"><label class="form-label">แผนกปัจจุบัน</label><select class="form-control" id="insp-new-dept"><option>วิศวกรรม</option><option>ผลิต</option><option>คุณภาพ</option><option>ซ่อมบำรุง</option><option>สาธารณูปโภค</option></select></div>
+      </div>
+      <div class="form-group"><label class="form-label">ผู้ตรวจสอบ</label><input class="form-control" id="insp-inspector" placeholder="ชื่อผู้ตรวจสอบ"></div>
+      <div class="form-group"><label class="form-label">หมายเหตุ</label><textarea class="form-control" id="insp-remark" rows="2" placeholder="รายละเอียดเพิ่มเติม"></textarea></div>
+    </div>
+    <div class="flex gap-8 mt-16" style="justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('inspectModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveInspection()">💾 บันทึกผลตรวจ</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD WR MODAL -->
+<div class="modal-overlay" id="addWRModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">🔧 สร้าง Work Request</div>
+      <button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('addWRModal')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Asset ID</label>
+        <select class="form-control" id="wr-asset"><option value="">-- เลือก Asset --</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">ประเภทงาน</label>
+        <select class="form-control" id="wr-type"><option>Corrective</option><option>Emergency</option><option>Improvement</option></select>
+      </div>
+    </div>
+    <div class="form-group"><label class="form-label">อาการปัญหา / รายละเอียด</label><textarea class="form-control" id="wr-desc" rows="3" placeholder="อธิบายอาการปัญหา"></textarea></div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">ผู้แจ้ง</label><input class="form-control" id="wr-reporter" placeholder="ชื่อผู้แจ้ง"></div>
+      <div class="form-group"><label class="form-label">ผู้รับผิดชอบ</label><input class="form-control" id="wr-assign" placeholder="ช่างผู้รับผิดชอบ"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">วันที่แจ้ง</label><input class="form-control" id="wr-date" type="datetime-local"></div>
+      <div class="form-group"><label class="form-label">อะไหล่ที่ใช้</label><input class="form-control" id="wr-parts" placeholder="รายการอะไหล่"></div>
+    </div>
+    <div class="flex gap-8 mt-16" style="justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('addWRModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveWR()">💾 สร้าง WR</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PPM MODAL -->
+<div class="modal-overlay" id="addPPMModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📅 เพิ่มแผน Preventive Maintenance</div>
+      <button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('addPPMModal')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Asset ID</label><select class="form-control" id="ppm-asset"><option value="">-- เลือก Asset --</option></select></div>
+      <div class="form-group"><label class="form-label">ชื่องาน PM</label><input class="form-control" id="ppm-name" placeholder="เช่น เปลี่ยนน้ำมันเครื่อง"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">ความถี่</label>
+        <select class="form-control" id="ppm-freq"><option>รายวัน</option><option>รายสัปดาห์</option><option>รายเดือน</option><option>ราย 3 เดือน</option><option>ราย 6 เดือน</option><option>รายปี</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">วันแผน</label><input class="form-control" id="ppm-plan-date" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">ค่าที่วัดได้</label><input class="form-control" id="ppm-measured" placeholder="ค่า"></div>
+      <div class="form-group"><label class="form-label">ค่ามาตรฐาน</label><input class="form-control" id="ppm-std" placeholder="มาตรฐาน"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">ผู้รับผิดชอบ</label><input class="form-control" id="ppm-assign" placeholder="ช่าง"></div>
+      <div class="form-group"><label class="form-label">สถานะ</label>
+        <select class="form-control" id="ppm-status"><option value="planned">แผน</option><option value="done">เสร็จสิ้น</option><option value="overdue">เกินกำหนด</option></select>
+      </div>
+    </div>
+    <div class="flex gap-8 mt-16" style="justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('addPPMModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="savePPM()">💾 บันทึกแผน PM</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD MA CONTRACT MODAL -->
+<div class="modal-overlay" id="addMAModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📄 เพิ่มสัญญา MA</div>
+      <button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('addMAModal')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Asset ID</label><select class="form-control" id="ma-asset"><option value="">-- เลือก Asset --</option></select></div>
+      <div class="form-group"><label class="form-label">Vendor / ผู้ให้บริการ</label><input class="form-control" id="ma-vendor" placeholder="บริษัทผู้ให้บริการ"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">ประเภทสัญญา</label>
+        <select class="form-control" id="ma-type"><option>Full Service</option><option>Parts Only</option><option>Labor Only</option><option>PM Only</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">มูลค่าสัญญา (฿)</label><input class="form-control" id="ma-value-input" type="number" placeholder="0"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">วันเริ่มสัญญา</label><input class="form-control" id="ma-start" type="date"></div>
+      <div class="form-group"><label class="form-label">วันหมดสัญญา</label><input class="form-control" id="ma-end" type="date"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">ความถี่ PM ในสัญญา</label>
+        <select class="form-control" id="ma-pmfreq"><option>รายเดือน</option><option>ราย 3 เดือน</option><option>ราย 6 เดือน</option><option>รายปี</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">เบอร์ติดต่อ Vendor</label><input class="form-control" id="ma-contact" placeholder="0xx-xxx-xxxx"></div>
+    </div>
+    <div class="flex gap-8 mt-16" style="justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('addMAModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="saveMA()">💾 บันทึกสัญญา</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD PART MODAL -->
+<div class="modal-overlay" id="addPartModal">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">📦 เพิ่มรายการอะไหล่</div>
+      <button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('addPartModal')">✕</button>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">Part No.</label><input class="form-control" id="part-no" placeholder="เช่น PRT-0001"></div>
+      <div class="form-group"><label class="form-label">ชื่ออะไหล่</label><input class="form-control" id="part-name" placeholder="ชื่ออะไหล่"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">ประเภท</label>
+        <select class="form-control" id="part-type"><option>อะไหล่เครื่องจักร</option><option>วัสดุสิ้นเปลือง</option><option>น้ำมัน/สารหล่อลื่น</option><option>อุปกรณ์ไฟฟ้า</option><option>อื่นๆ</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">หน่วย</label><input class="form-control" id="part-unit" placeholder="ชิ้น/แพ็ค/ลิตร"></div>
+    </div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">คงเหลือเริ่มต้น</label><input class="form-control" id="part-qty" type="number" placeholder="0" value="0"></div>
+      <div class="form-group"><label class="form-label">ROP (จุดสั่งซื้อ)</label><input class="form-control" id="part-rop" type="number" placeholder="0" value="5"></div>
+      <div class="form-group"><label class="form-label">EOQ</label><input class="form-control" id="part-eoq" type="number" placeholder="0" value="10"></div>
+    </div>
+    <div class="form-group"><label class="form-label">ราคาต่อหน่วย (฿)</label><input class="form-control" id="part-price" type="number" placeholder="0"></div>
+    <div class="flex gap-8 mt-16" style="justify-content:flex-end">
+      <button class="btn btn-secondary" onclick="closeModal('addPartModal')">ยกเลิก</button>
+      <button class="btn btn-primary" onclick="savePart()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+<!-- RECEIVE MODAL -->
+<div class="modal-overlay" id="receiveModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">📥 รับอะไหล่เข้าคลัง</div><button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('receiveModal')">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Part No.</label><select class="form-control" id="recv-part"><option value="">-- เลือกอะไหล่ --</option></select></div><div class="form-group"><label class="form-label">จำนวน</label><input class="form-control" id="recv-qty" type="number" min="1" value="1"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">อ้างอิงเอกสาร (PO/GR)</label><input class="form-control" id="recv-ref" placeholder="เลขที่ PO"></div><div class="form-group"><label class="form-label">ผู้รับ</label><input class="form-control" id="recv-person" placeholder="ชื่อผู้รับ"></div></div>
+    <div class="form-group"><label class="form-label">หมายเหตุ</label><input class="form-control" id="recv-note" placeholder="หมายเหตุ"></div>
+    <div class="flex gap-8 mt-16" style="justify-content:flex-end"><button class="btn btn-secondary" onclick="closeModal('receiveModal')">ยกเลิก</button><button class="btn btn-success" onclick="saveReceive()">✅ ยืนยันรับเข้า</button></div>
+  </div>
+</div>
+
+<!-- ISSUE MODAL -->
+<div class="modal-overlay" id="issueModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">📤 จ่ายอะไหล่ออกคลัง</div><button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('issueModal')">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Part No.</label><select class="form-control" id="issue-part"><option value="">-- เลือกอะไหล่ --</option></select></div><div class="form-group"><label class="form-label">จำนวน</label><input class="form-control" id="issue-qty" type="number" min="1" value="1"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">อ้างอิง WR/PPM/MA</label><input class="form-control" id="issue-ref" placeholder="เลขที่ใบงาน"></div><div class="form-group"><label class="form-label">ผู้เบิก</label><input class="form-control" id="issue-person" placeholder="ชื่อผู้เบิก"></div></div>
+    <div class="flex gap-8 mt-16" style="justify-content:flex-end"><button class="btn btn-secondary" onclick="closeModal('issueModal')">ยกเลิก</button><button class="btn btn-danger" onclick="saveIssue()">📤 ยืนยันจ่ายออก</button></div>
+  </div>
+</div>
+
+<!-- CALC DEPRECIATION MODAL -->
+<div class="modal-overlay" id="calcDepModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">🧮 คำนวณค่าเสื่อมราคา</div><button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('calcDepModal')">✕</button></div>
+    <div class="form-row-3">
+      <div class="form-group"><label class="form-label">ราคาซื้อ (฿)</label><input class="form-control" id="dep-cost" type="number" placeholder="1000000" oninput="calcDep()"></div>
+      <div class="form-group"><label class="form-label">มูลค่าซาก (฿)</label><input class="form-control" id="dep-salvage" type="number" placeholder="0" oninput="calcDep()"></div>
+      <div class="form-group"><label class="form-label">อายุ (ปี)</label><input class="form-control" id="dep-life" type="number" placeholder="10" oninput="calcDep()"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label class="form-label">วิธีคิดค่าเสื่อม</label>
+        <select class="form-control" id="dep-method" onchange="calcDep()"><option value="sl">Straight Line</option><option value="dd">Double Declining</option></select>
+      </div>
+      <div class="form-group"><label class="form-label">ปีปัจจุบัน</label><input class="form-control" id="dep-year" type="number" placeholder="1" value="1" oninput="calcDep()"></div>
+    </div>
+    <div class="card-sm" id="dep-result" style="background:var(--bg3)"><div class="text-muted text-center" style="font-size:13px">กรอกข้อมูลเพื่อคำนวณ</div></div>
+  </div>
+</div>
+
+<!-- OPERATION LOG MODAL -->
+<div class="modal-overlay" id="addOptModal">
+  <div class="modal">
+    <div class="modal-header"><div class="modal-title">⚙️ บันทึกผลการเดินระบบ</div><button class="btn btn-secondary btn-sm btn-icon" onclick="closeModal('addOptModal')">✕</button></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Asset ID</label><select class="form-control" id="opt-asset"><option value="">-- เลือก Asset --</option></select></div><div class="form-group"><label class="form-label">วันที่/เวลา</label><input class="form-control" id="opt-datetime" type="datetime-local"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">Parameter ที่วัด</label><input class="form-control" id="opt-param" placeholder="เช่น อุณหภูมิ, แรงดัน"></div><div class="form-group"><label class="form-label">ค่าที่วัดได้</label><input class="form-control" id="opt-val" placeholder="ค่า"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">ค่ามาตรฐาน</label><input class="form-control" id="opt-std" placeholder="มาตรฐาน"></div><div class="form-group"><label class="form-label">หน่วย</label><input class="form-control" id="opt-unit" placeholder="°C, bar, rpm"></div></div>
+    <div class="form-row"><div class="form-group"><label class="form-label">ผู้บันทึก</label><input class="form-control" id="opt-person" placeholder="ชื่อ"></div><div class="form-group"><label class="form-label">สถานะ</label><select class="form-control" id="opt-status"><option value="normal">ปกติ</option><option value="alert">เกินมาตรฐาน</option><option value="critical">วิกฤต</option></select></div></div>
+    <div class="form-group"><label class="form-label">หมายเหตุ</label><input class="form-control" id="opt-note" placeholder="หมายเหตุ"></div>
+    <div class="flex gap-8 mt-16" style="justify-content:flex-end"><button class="btn btn-secondary" onclick="closeModal('addOptModal')">ยกเลิก</button><button class="btn btn-primary" onclick="saveOpt()">💾 บันทึก</button></div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════
+//  DATA STORE
+// ═══════════════════════════════════════════════════════════
+const DB = {
+  get: (k, d=[]) => { try { return JSON.parse(localStorage.getItem('alm_'+k)) ?? d; } catch { return d; } },
+  set: (k, v) => localStorage.setItem('alm_'+k, JSON.stringify(v)),
+};
+
+let assets = DB.get('assets', []);
+let workRequests = DB.get('wr', []);
+let ppmList = DB.get('ppm', []);
+let maList = DB.get('ma', []);
+let inventory = DB.get('inv', []);
+let invTx = DB.get('invtx', []);
+let inspections = DB.get('inspections', []);
+let optLogs = DB.get('optlogs', []);
+
+// ═══════════════════════════════════════════════════════════
+//  SEED DATA
+// ═══════════════════════════════════════════════════════════
+function seedData() {
+  if (assets.length > 0) return;
+  const depts = ['วิศวกรรม','ผลิต','คุณภาพ','ซ่อมบำรุง','สาธารณูปโภค'];
+  const types = ['เครื่องจักร','ยานพาหนะ','อุปกรณ์ IT','เครื่องมือวัด','อาคาร/โครงสร้าง'];
+  const phases = ['Planning','Acquisition','Operation','Maintenance','Disposal'];
+  const statuses = ['green','green','green','yellow','red'];
+  const locations = ['อาคาร A ชั้น 1','อาคาร A ชั้น 2','อาคาร B','โรงผลิต 1','โรงผลิต 2','สำนักงาน'];
+  const names = ['CNC Milling Machine','Industrial Compressor','Conveyor Belt System','Hydraulic Press','Electric Forklift','Air Conditioning Unit','Water Pump Station','Overhead Crane 5T','Quality CMM Machine','Generator 500kVA','Lathe Machine CNC','Injection Molding','Packaging Machine','Welding Robot','Cooling Tower'];
+
+  for (let i = 0; i < 15; i++) {
+    const buyDate = new Date(2021 + Math.floor(Math.random()*3), Math.floor(Math.random()*12), Math.floor(Math.random()*28)+1);
+    const cost = (Math.floor(Math.random()*9)+1) * 500000;
+    const life = [5,8,10,15,20][Math.floor(Math.random()*5)];
+    const ageYr = (new Date() - buyDate) / (365.25*24*3600*1000);
+    const depPerYr = (cost - cost*0.1) / life;
+    const accDep = Math.min(depPerYr * ageYr, cost - cost*0.1);
+    const nbv = Math.max(cost - accDep, cost*0.1);
+    assets.push({
+      id: `AST-2026-${String(i+1).padStart(3,'0')}`,
+      name: names[i],
+      type: types[Math.floor(Math.random()*types.length)],
+      dept: depts[Math.floor(Math.random()*depts.length)],
+      location: locations[Math.floor(Math.random()*locations.length)],
+      phase: phases[Math.floor(Math.random()*phases.length)],
+      status: statuses[Math.floor(Math.random()*statuses.length)],
+      efficiency: Math.floor(Math.random()*30)+70,
+      cost, life, salvage: cost*0.1, buyDate: buyDate.toISOString().split('T')[0],
+      depMethod: 'Straight Line', brand: ['Mitsubishi','Siemens','Fanuc','Bosch','ABB'][Math.floor(Math.random()*5)],
+      model: `M-${Math.floor(Math.random()*9000)+1000}`, serial: `SN${Math.floor(Math.random()*900000)+100000}`,
+      nbv: Math.round(nbv), accDep: Math.round(accDep), note: ''
+    });
+  }
+  DB.set('assets', assets);
+
+  // WR seed
+  const wrStatuses = ['open','inprogress','closed','closed','open'];
+  for (let i = 0; i < 8; i++) {
+    const d = new Date(); d.setDate(d.getDate() - Math.floor(Math.random()*30));
+    workRequests.push({ id:`WR-${String(i+1).padStart(4,'0')}`, assetId: assets[Math.floor(Math.random()*assets.length)].id,
+      desc: ['เครื่องสั่นผิดปกติ','น้ำมันรั่ว','เสียงดัง','ไฟล้ม','ความดันตก'][Math.floor(Math.random()*5)],
+      type: ['Corrective','Emergency','Improvement'][Math.floor(Math.random()*3)],
+      reporter: ['สมชาย','ประยุทธ์','วิชัย','อนุชา'][Math.floor(Math.random()*4)],
+      assign: ['ช่าง A','ช่าง B','ช่าง C'][Math.floor(Math.random()*3)],
+      date: d.toISOString(), closeDate: wrStatuses[i%5]==='closed' ? new Date(d.getTime()+Math.random()*86400000*3).toISOString() : null,
+      mttr: wrStatuses[i%5]==='closed' ? (Math.random()*8+0.5).toFixed(1) : null,
+      parts: ['Filter','Bearing 6205','Oil Seal','Belt V-type',''][Math.floor(Math.random()*5)],
+      status: wrStatuses[i%5]
+    });
+  }
+  DB.set('wr', workRequests);
+
+  // PPM seed
+  for (let i = 0; i < 10; i++) {
+    const d = new Date(); d.setDate(d.getDate() - Math.floor(Math.random()*60)+10);
+    const st = ['planned','done','done','overdue','planned'][Math.floor(Math.random()*5)];
+    ppmList.push({ id:`PPM-${String(i+1).padStart(4,'0')}`, assetId: assets[Math.floor(Math.random()*assets.length)].id,
+      name: ['เปลี่ยนน้ำมัน','ตรวจสอบสายพาน','ล้างฟิลเตอร์','วัดฉนวนมอเตอร์','ตรวจสอบ Coupling'][Math.floor(Math.random()*5)],
+      freq: ['รายเดือน','ราย 3 เดือน','ราย 6 เดือน','รายสัปดาห์'][Math.floor(Math.random()*4)],
+      planDate: d.toISOString().split('T')[0],
+      measured: (Math.random()*100).toFixed(1), std: '85-100', assign: ['ช่าง A','ช่าง B'][Math.floor(Math.random()*2)],
+      status: st, mtbf: Math.floor(Math.random()*800)+800
+    });
+  }
+  DB.set('ppm', ppmList);
+
+  // MA seed
+  for (let i = 0; i < 5; i++) {
+    const start = new Date(2024, i*2, 1);
+    const end = new Date(2025+Math.floor(i/3), i*2, 1);
+    const daysLeft = (end - new Date()) / (24*3600*1000);
+    maList.push({ id:`MA-${String(i+1).padStart(4,'0')}`, assetId: assets[i].id,
+      vendor: ['บจก.เทคโนเซอร์วิส','บจก.พรีมัมเอ็นจิ','บจก.ไทยมาสเตอร์','บจก.เอบีบีไทย','บจก.ซีเมนส์ไทย'][i],
+      type: ['Full Service','PM Only','Parts Only','Full Service','Labor Only'][i],
+      value: [120000,85000,60000,200000,95000][i], start: start.toISOString().split('T')[0], end: end.toISOString().split('T')[0],
+      pmFreq: ['ราย 3 เดือน','รายเดือน','ราย 6 เดือน','รายปี','ราย 3 เดือน'][i],
+      contact: '0'+Math.floor(Math.random()*899999999+100000000),
+      status: daysLeft < 0 ? 'expired' : daysLeft < 90 ? 'expiring' : 'active'
+    });
+  }
+  DB.set('ma', maList);
+
+  // Inventory seed
+  const partNames = ['Filter Oil EFF-100','Bearing 6205 2RS','V-Belt B-70','Oil Seal 45×62','Contactor LC1-D25','Fuse 16A','Hydraulic Oil 46','Limit Switch OMRON','Terminal Block DIN','PLC Battery 3.6V'];
+  for (let i = 0; i < 10; i++) {
+    const qty = Math.floor(Math.random()*50)+2;
+    const rop = Math.floor(Math.random()*10)+5;
+    inventory.push({ id:`PRT-${String(i+1).padStart(4,'0')}`, name: partNames[i],
+      type: ['อะไหล่เครื่องจักร','น้ำมัน/สารหล่อลื่น','อุปกรณ์ไฟฟ้า','วัสดุสิ้นเปลือง'][Math.floor(Math.random()*4)],
+      unit: ['ชิ้น','ลิตร','เส้น','แพ็ค'][Math.floor(Math.random()*4)],
+      qty, rop, eoq: rop*2, price: Math.floor(Math.random()*4900)+100
+    });
+  }
+  DB.set('inv', inventory);
+
+  // Inspection seed
+  inspections = assets.map(a => ({ assetId: a.id, name: a.name, dept: a.dept, location: a.location, status: a.status, result: null, inspDate: null, inspector: null, remark: null }));
+  DB.set('inspections', inspections);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VIEW NAVIGATION
+// ═══════════════════════════════════════════════════════════
+const viewTitles = {
+  dashboard:'Dashboard — ภาพรวม', assets:'ทะเบียนสินทรัพย์',
+  lifecycle:'Lifecycle Tracker', qrcode:'QR Code Assets',
+  inspection:'ตรวจสอบประจำปี', valuation:'Value Add — มูลค่า',
+  workrequest:'Work Request System', operation:'Operation System',
+  ppm:'Preventive Maintenance', contract:'MA Contract', inventory:'Inventory',
+  adminmgmt:'Admin Management'
+};
+function showView(name) {
+  document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+  document.getElementById('view-'+name).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => { if(n.getAttribute('onclick')?.includes("'"+name+"'")) n.classList.add('active'); });
+  document.getElementById('topbar-title').textContent = viewTitles[name] || name;
+  document.getElementById('topbar-breadcrumb').textContent = `PSD eNGINNo ALM › ${viewTitles[name]||name}`;
+  const renders = {dashboard:renderDashboard,assets:renderAssets,lifecycle:renderLifecycleSelect,
+    qrcode:renderQR,inspection:renderInspection,valuation:renderValuation,
+    workrequest:renderWR,operation:renderOpt,ppm:renderPPM,contract:renderMA,inventory:renderInventory,
+    adminmgmt:renderAdminmgmt};
+  if(renders[name]) renders[name]();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  MODALS
+// ═══════════════════════════════════════════════════════════
+function openModal(id) {
+  document.getElementById(id).classList.add('open');
+  populateAssetSelects();
+  populatePartSelects();
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+document.addEventListener('keydown', e => { if(e.key==='Escape') document.querySelectorAll('.modal-overlay.open').forEach(m => m.classList.remove('open')); });
+
+// ═══════════════════════════════════════════════════════════
+//  CLOCK
+// ═══════════════════════════════════════════════════════════
+function updateClock() {
+  document.getElementById('clock').textContent = new Date().toLocaleString('th-TH',{dateStyle:'short',timeStyle:'medium'});
+}
+setInterval(updateClock, 1000); updateClock();
+
+// ═══════════════════════════════════════════════════════════
+//  POPULATE SELECTS
+// ═══════════════════════════════════════════════════════════
+function populateAssetSelects() {
+  ['wr-asset','ppm-asset','ma-asset','opt-asset','lc-asset-select'].forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    const cur = el.value;
+    el.innerHTML = `<option value="">-- เลือก Asset --</option>` + assets.map(a=>`<option value="${a.id}">${a.id} — ${a.name}</option>`).join('');
+    if(cur) el.value = cur;
+  });
+}
+function populatePartSelects() {
+  ['recv-part','issue-part'].forEach(id => {
+    const el = document.getElementById(id); if(!el) return;
+    el.innerHTML = `<option value="">-- เลือกอะไหล่ --</option>` + inventory.map(p=>`<option value="${p.id}">${p.id} — ${p.name} (คงเหลือ: ${p.qty} ${p.unit})</option>`).join('');
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ASSET MODAL TABS
+// ═══════════════════════════════════════════════════════════
+let editAssetId = null;
+function showAssetTab(t,el) {
+  ['general','technical','financial'].forEach(x => document.getElementById('asset-tab-'+x).style.display='none');
+  document.getElementById('asset-tab-'+t).style.display='block';
+  document.querySelectorAll('#addAssetModal .tab').forEach(tb => tb.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  SAVE ASSET
+// ═══════════════════════════════════════════════════════════
+function saveAsset() {
+  const id = document.getElementById('f-id').value.trim();
+  const name = document.getElementById('f-name').value.trim();
+  if (!id || !name) { alert('กรุณากรอก Asset ID และชื่อสินทรัพย์'); return; }
+  const cost = parseFloat(document.getElementById('f-cost').value)||0;
+  const life = parseInt(document.getElementById('f-life').value)||10;
+  const salvage = parseFloat(document.getElementById('f-salvage').value)||0;
+  const buyDate = document.getElementById('f-buydate').value;
+  let nbv = cost, accDep = 0;
+  if (buyDate) {
+    const ageYr = (new Date() - new Date(buyDate)) / (365.25*24*3600*1000);
+    const depPerYr = (cost - salvage) / life;
+    accDep = Math.min(depPerYr * ageYr, cost - salvage);
+    nbv = Math.max(cost - accDep, salvage);
+  }
+  const asset = {
+    id, name, type: document.getElementById('f-type').value, dept: document.getElementById('f-dept').value,
+    location: document.getElementById('f-location').value, phase: document.getElementById('f-phase').value,
+    status: document.getElementById('f-status').value, efficiency: parseInt(document.getElementById('f-eff').value)||85,
+    cost, life, salvage, buyDate, depMethod: document.getElementById('f-depmethod').value,
+    brand: document.getElementById('f-brand').value, model: document.getElementById('f-model').value,
+    serial: document.getElementById('f-serial').value, note: document.getElementById('f-note').value,
+    nbv: Math.round(nbv), accDep: Math.round(accDep)
+  };
+  const idx = assets.findIndex(a => a.id === id);
+  if (idx >= 0) assets[idx] = asset; else { assets.push(asset); inspections.push({assetId:id,name,dept:asset.dept,location:asset.location,status:asset.status,result:null,inspDate:null,inspector:null,remark:null}); }
+  DB.set('assets', assets); DB.set('inspections', inspections);
+  closeModal('addAssetModal');
+  showView('assets');
+}
+
+function editAsset(id) {
+  const a = assets.find(x => x.id === id); if (!a) return;
+  openModal('addAssetModal');
+  ['id','name','type','dept','location','phase','status','life','eff','cost','salvage','buydate','depmethod','brand','model','serial','note'].forEach(k => {
+    const map = {id:'f-id',name:'f-name',type:'f-type',dept:'f-dept',location:'f-location',phase:'f-phase',status:'f-status',life:'f-life',eff:'f-eff',cost:'f-cost',salvage:'f-salvage',buydate:'f-buydate',depmethod:'f-depmethod',brand:'f-brand',model:'f-model',serial:'f-serial',note:'f-note'};
+    const el = document.getElementById(map[k]); if(el && a[k]!==undefined) el.value = a[k];
+  });
+}
+
+function deleteAsset(id) {
+  if (!confirm(`ลบสินทรัพย์ ${id}?`)) return;
+  assets = assets.filter(a => a.id !== id);
+  DB.set('assets', assets);
+  renderAssets();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  STATUS HELPERS
+// ═══════════════════════════════════════════════════════════
+function statusBadge(s) {
+  const map = { green:`<span class="badge badge-green"><span class="badge-dot"></span>Green</span>`, yellow:`<span class="badge badge-yellow"><span class="badge-dot"></span>Yellow</span>`, red:`<span class="badge badge-red"><span class="badge-dot"></span>Red</span>` };
+  return map[s] || `<span class="badge badge-gray">${s}</span>`;
+}
+function phaseColor(p) { return {Planning:'blue',Acquisition:'teal',Operation:'green',Maintenance:'yellow',Disposal:'red'}[p]||'gray'; }
+function phaseBadge(p) { return `<span class="badge badge-${phaseColor(p)}">${p}</span>`; }
+function fmtCurrency(n) { return '฿'+Math.round(n||0).toLocaleString('th-TH'); }
+function fmtDate(d) { if(!d) return '-'; try { return new Date(d).toLocaleDateString('th-TH'); } catch { return d; } }
+
+// ═══════════════════════════════════════════════════════════
+//  DASHBOARD
+// ═══════════════════════════════════════════════════════════
+let charts = {};
+function destroyChart(id) { if(charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function renderDashboard() {
+  const total = assets.length;
+  const green = assets.filter(a=>a.status==='green').length;
+  const yellow = assets.filter(a=>a.status==='yellow').length;
+  const red = assets.filter(a=>a.status==='red').length;
+  const totalVal = assets.reduce((s,a)=>s+(a.cost||0),0);
+  const nbv = assets.reduce((s,a)=>s+(a.nbv||0),0);
+  const openWR = workRequests.filter(w=>w.status==='open').length;
+  const now = new Date();
+  const ppmDue = ppmList.filter(p=>p.status==='planned'&&new Date(p.planDate)<=new Date(now.getFullYear(),now.getMonth()+1,0)).length;
+
+  document.getElementById('kpi-total').textContent = total;
+  document.getElementById('kpi-green').textContent = green;
+  document.getElementById('kpi-yellow').textContent = yellow;
+  document.getElementById('kpi-red').textContent = red;
+  document.getElementById('kpi-total-val').textContent = fmtCurrency(totalVal);
+  document.getElementById('kpi-nbv').textContent = fmtCurrency(nbv);
+  document.getElementById('kpi-wr').textContent = openWR;
+  document.getElementById('kpi-ppm').textContent = ppmDue;
+
+  // Status chart
+  destroyChart('status');
+  charts.status = new Chart(document.getElementById('chartStatus'), {
+    type:'doughnut', data:{labels:['Green','Yellow','Red'],datasets:[{data:[green,yellow,red],backgroundColor:['#22C55E','#EAB308','#EF4444'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8B949E',padding:12}}}}
+  });
+
+  // Dept chart
+  const deptMap = {};
+  assets.forEach(a => { deptMap[a.dept] = (deptMap[a.dept]||0)+1; });
+  destroyChart('dept');
+  charts.dept = new Chart(document.getElementById('chartDept'), {
+    type:'bar', data:{labels:Object.keys(deptMap),datasets:[{label:'จำนวน',data:Object.values(deptMap),backgroundColor:'#F97316',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8B949E'}},y:{ticks:{color:'#8B949E'},grid:{color:'#21262D'}}}}
+  });
+
+  // Value chart
+  const years = ['2020','2021','2022','2023','2024','2025'];
+  destroyChart('value');
+  charts.value = new Chart(document.getElementById('chartValue'), {
+    type:'line',
+    data:{labels:years,datasets:[{label:'Original Cost',data:years.map((_,i)=>Math.round(totalVal*(1-i*0.02))),borderColor:'#3B82F6',fill:false,tension:.3},{label:'Net Book Value',data:years.map((_,i)=>Math.round(nbv*(1-i*0.12))),borderColor:'#14B8A6',fill:false,tension:.3}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8B949E'}}},scales:{x:{ticks:{color:'#8B949E'}},y:{ticks:{color:'#8B949E',callback:v=>'฿'+v.toLocaleString()},grid:{color:'#21262D'}}}}
+  });
+
+  // Lifecycle chart
+  const phaseMap = {};
+  assets.forEach(a => { phaseMap[a.phase] = (phaseMap[a.phase]||0)+1; });
+  destroyChart('lifecycle');
+  charts.lifecycle = new Chart(document.getElementById('chartLifecycle'), {
+    type:'bar',data:{labels:Object.keys(phaseMap),datasets:[{label:'Assets',data:Object.values(phaseMap),backgroundColor:['#3B82F6','#14B8A6','#22C55E','#EAB308','#EF4444'],borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8B949E'}},y:{ticks:{color:'#8B949E'},grid:{color:'#21262D'}}}}
+  });
+
+  // Alerts
+  const alerts = [];
+  assets.filter(a=>a.status==='red').forEach(a => alerts.push({type:'danger',msg:`🔴 ${a.id} — ${a.name} สถานะวิกฤต`}));
+  assets.filter(a=>a.status==='yellow').slice(0,2).forEach(a => alerts.push({type:'warning',msg:`🟡 ${a.id} — ${a.name} ต้องติดตาม`}));
+  ppmList.filter(p=>p.status==='overdue').slice(0,2).forEach(p => alerts.push({type:'warning',msg:`⏰ PM เกินกำหนด: ${p.name}`}));
+  maList.filter(m=>m.status==='expiring').forEach(m => alerts.push({type:'warning',msg:`📄 สัญญา MA ใกล้หมดอายุ: ${m.id}`}));
+  document.getElementById('alert-list').innerHTML = alerts.length ? alerts.map(a=>`<div class="alert alert-${a.type==='danger'?'danger':'warning'} mb-8" style="margin-bottom:8px">${a.msg}</div>`).join('') : '<div class="text-muted text-center" style="font-size:13px;padding:20px">ไม่มี Alert ในขณะนี้ ✅</div>';
+
+  // Recent WR
+  const recentWR = [...workRequests].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,4);
+  document.getElementById('wr-recent-list').innerHTML = recentWR.length ? recentWR.map(w=>`<div class="metric-row"><span class="tag">${w.id}</span><span style="font-size:12px;flex:1;margin:0 8px;color:var(--text2)">${w.desc}</span>${statusBadge(w.status==='open'?'red':w.status==='inprogress'?'yellow':'green')}</div>`).join('') : '<div class="text-muted text-center" style="font-size:13px;padding:20px">ไม่มี WR</div>';
+}
+
+function refreshDashboard() { assets=DB.get('assets',[]); workRequests=DB.get('wr',[]); ppmList=DB.get('ppm',[]); renderDashboard(); }
+function exportDashboard() { alert('Export Dashboard PDF/Excel — Feature พร้อมใช้งาน'); }
+
+// ═══════════════════════════════════════════════════════════
+//  ASSET TABLE
+// ═══════════════════════════════════════════════════════════
+let assetFilter = {q:'',status:'',dept:'',phase:''}, assetPage = 1, pageSize = 10;
+let importData = [];
+
+function renderAssets() {
+  let list = [...assets];
+  if (assetFilter.q) { const q = assetFilter.q.toLowerCase(); list = list.filter(a => `${a.id} ${a.name} ${a.dept} ${a.location}`.toLowerCase().includes(q)); }
+  if (assetFilter.status) list = list.filter(a => a.status === assetFilter.status);
+  if (assetFilter.dept) list = list.filter(a => a.dept === assetFilter.dept);
+  if (assetFilter.phase) list = list.filter(a => a.phase === assetFilter.phase);
+  const total = list.length, pages = Math.ceil(total/pageSize);
+  if (assetPage > pages) assetPage = 1;
+  const paged = list.slice((assetPage-1)*pageSize, assetPage*pageSize);
+  document.getElementById('asset-table-body').innerHTML = paged.map(a => `
+    <tr>
+      <td><span class="tag ff-mono">${a.id}</span></td>
+      <td><div style="font-weight:600;color:var(--text)">${a.name}</div><div style="font-size:11px;color:var(--text3)">${a.brand||''} ${a.model||''}</div></td>
+      <td>${a.type||'-'}</td>
+      <td>${a.dept}</td>
+      <td style="font-size:12px">${a.location||'-'}</td>
+      <td>${phaseBadge(a.phase)}</td>
+      <td>
+        <div style="font-size:12px;margin-bottom:3px;color:var(--text2)">${a.efficiency||0}%</div>
+        <div class="progress" style="width:80px"><div class="progress-bar" style="width:${a.efficiency||0}%;background:${a.efficiency>=80?'var(--green)':a.efficiency>=60?'var(--yellow)':'var(--red)'}"></div></div>
+      </td>
+      <td>${statusBadge(a.status)}</td>
+      <td style="font-family:var(--font-mono);font-size:12px">${fmtCurrency(a.nbv)}</td>
+      <td>
+        <div class="flex gap-8">
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="editAsset('${a.id}')" title="แก้ไข">✏</button>
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="showQRSingle('${a.id}')" title="QR Code">📱</button>
+          <button class="btn btn-danger btn-sm btn-icon" onclick="deleteAsset('${a.id}')" title="ลบ">🗑</button>
+        </div>
+      </td>
+    </tr>`).join('');
+
+  // Pagination
+  const pag = document.getElementById('asset-pagination');
+  pag.innerHTML = `<span class="text-muted" style="font-size:12px">${total} รายการ</span>`;
+  for (let i = 1; i <= pages; i++) {
+    const btn = document.createElement('button');
+    btn.className = `btn btn-secondary btn-sm${i===assetPage?' btn-primary':''}`;
+    btn.textContent = i;
+    btn.onclick = () => { assetPage = i; renderAssets(); };
+    pag.appendChild(btn);
+  }
+}
+
+function filterAssets(q) { assetFilter.q = q; assetPage = 1; renderAssets(); }
+function filterByStatus(s) { assetFilter.status = s; assetPage = 1; renderAssets(); }
+function filterByDept(d) { assetFilter.dept = d; assetPage = 1; renderAssets(); }
+function filterByPhase(p) { assetFilter.phase = p; assetPage = 1; renderAssets(); }
+
+// ═══════════════════════════════════════════════════════════
+//  EXCEL IMPORT
+// ═══════════════════════════════════════════════════════════
+function handleDragOver(e) { e.preventDefault(); e.currentTarget.classList.add('drag'); }
+function handleDrop(e) { e.preventDefault(); e.currentTarget.classList.remove('drag'); const f = e.dataTransfer.files[0]; if(f) processFile(f); }
+function handleFileImport(input) { const f = input.files[0]; if(f) processFile(f); }
+
+function processFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'binary'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const raw = XLSX.utils.sheet_to_json(ws, {defval:''});
+      importData = raw.map((r,i) => ({
+        id: r['Asset ID'] || r['id'] || `AST-IMP-${String(i+1).padStart(3,'0')}`,
+        name: r['ชื่อสินทรัพย์'] || r['name'] || r['Asset Name'] || 'Unknown',
+        type: r['ประเภท'] || r['type'] || 'เครื่องจักร',
+        dept: r['แผนก'] || r['dept'] || 'วิศวกรรม',
+        location: r['สถานที่'] || r['location'] || '-',
+        cost: parseFloat(r['ราคาซื้อ'] || r['cost'] || 0) || 0,
+        buyDate: r['วันที่ซื้อ'] || r['buyDate'] || '',
+        life: parseInt(r['อายุการใช้งาน'] || r['life'] || 10) || 10,
+        status: 'green', phase: 'Operation', efficiency: 85, salvage: 0, nbv: parseFloat(r['ราคาซื้อ']||0)||0, accDep: 0, depMethod:'Straight Line'
+      }));
+      document.getElementById('import-result').textContent = `✅ พบข้อมูล ${importData.length} รายการ พร้อม Import`;
+      const keys = ['id','name','type','dept','location','cost','buyDate','life'];
+      document.getElementById('import-thead').innerHTML = `<tr>${keys.map(k=>`<th>${k}</th>`).join('')}</tr>`;
+      document.getElementById('import-tbody').innerHTML = importData.slice(0,5).map(r=>`<tr>${keys.map(k=>`<td>${r[k]||''}</td>`).join('')}</tr>`).join('');
+      document.getElementById('import-preview').style.display = 'block';
+      document.getElementById('confirm-import-btn').style.display = 'inline-flex';
+    } catch(err) { alert('ไม่สามารถอ่านไฟล์ได้: '+err.message); }
+  };
+  reader.readAsBinaryString(file);
+}
+
+function confirmImport() {
+  importData.forEach(row => { const idx = assets.findIndex(a=>a.id===row.id); if(idx>=0) assets[idx]={...assets[idx],...row}; else assets.push(row); });
+  DB.set('assets', assets);
+  closeModal('importModal');
+  showView('assets');
+  alert(`✅ Import สำเร็จ ${importData.length} รายการ`);
+  importData = [];
+}
+
+function exportAssets() {
+  const ws = XLSX.utils.json_to_sheet(assets.map(a=>({'Asset ID':a.id,'ชื่อสินทรัพย์':a.name,'ประเภท':a.type,'แผนก':a.dept,'สถานที่':a.location,'Lifecycle Phase':a.phase,'สถานะ':a.status,'ประสิทธิภาพ%':a.efficiency,'ราคาซื้อ':a.cost,'NBV':a.nbv,'วันที่ซื้อ':a.buyDate,'อายุ(ปี)':a.life})));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Assets');
+  XLSX.writeFile(wb, 'PSD_Assets_'+new Date().toISOString().split('T')[0]+'.xlsx');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  LIFECYCLE
+// ═══════════════════════════════════════════════════════════
+function renderLifecycleSelect() { populateAssetSelects(); }
+
+function loadLifecycle(id) {
+  const a = assets.find(x=>x.id===id); if(!a) return;
+  const phases = ['Planning','Acquisition','Operation','Maintenance','Disposal','Value Add'];
+  const currentIdx = phases.indexOf(a.phase);
+  const bar = document.getElementById('lc-bar');
+  bar.querySelectorAll('.lc-step').forEach((el,i) => {
+    el.classList.remove('green','yellow','red','gray');
+    el.classList.add(i < currentIdx ? 'green' : i === currentIdx ? 'yellow' : 'gray');
+  });
+
+  const ageYr = a.buyDate ? ((new Date()-new Date(a.buyDate))/(365.25*24*3600*1000)).toFixed(1) : 0;
+  const lifeLeft = Math.max(0, (a.life||10) - ageYr).toFixed(1);
+  const depPerYr = a.cost ? ((a.cost-(a.salvage||0))/(a.life||10)).toFixed(0) : 0;
+
+  const content = [
+    ['1. Planning — วางแผน','lc-planning',`<div class="metric-row"><span class="text-muted">ประเภท</span><span>${a.type||'-'}</span></div><div class="metric-row"><span class="text-muted">อายุการใช้งานมาตรฐาน</span><span>${a.life} ปี</span></div><div class="metric-row"><span class="text-muted">วิธีคิดค่าเสื่อม</span><span>${a.depMethod||'-'}</span></div>`],
+    ['2. Acquisition — จัดหา','lc-acquisition',`<div class="metric-row"><span class="text-muted">ราคาซื้อ</span><span>${fmtCurrency(a.cost)}</span></div><div class="metric-row"><span class="text-muted">วันที่ซื้อ</span><span>${fmtDate(a.buyDate)}</span></div><div class="metric-row"><span class="text-muted">ยี่ห้อ / รุ่น</span><span>${a.brand||'-'} / ${a.model||'-'}</span></div>`],
+    ['3. Operation — ใช้งาน',  'lc-operation', `<div class="metric-row"><span class="text-muted">แผนก</span><span>${a.dept}</span></div><div class="metric-row"><span class="text-muted">สถานที่</span><span>${a.location||'-'}</span></div><div class="metric-row"><span class="text-muted">ประสิทธิภาพ</span><span style="color:var(--green)">${a.efficiency}%</span></div>`],
+    ['4. Maintenance — บำรุงรักษา','lc-maintenance',`<div class="metric-row"><span class="text-muted">WR ที่เกี่ยวข้อง</span><span>${workRequests.filter(w=>w.assetId===id).length} ใบ</span></div><div class="metric-row"><span class="text-muted">PM ที่มีแผน</span><span>${ppmList.filter(p=>p.assetId===id).length} งาน</span></div><div class="metric-row"><span class="text-muted">สถานะ</span><span>${statusBadge(a.status)}</span></div>`],
+    ['5. Disposal — จำหน่าย','lc-disposal', `<div class="metric-row"><span class="text-muted">อายุปัจจุบัน</span><span>${ageYr} ปี</span></div><div class="metric-row"><span class="text-muted">อายุคงเหลือ</span><span style="color:${lifeLeft<2?'var(--red)':'var(--green)'}">${lifeLeft} ปี</span></div><div class="metric-row"><span class="text-muted">สถานะปลดระวาง</span><span>${a.phase==='Disposal'?'<span class="badge badge-red">กำลังดำเนินการ</span>':'<span class="badge badge-gray">ยังไม่ถึงกำหนด</span>'}</span></div>`],
+    ['6. Value Add — มูลค่าคงเหลือ','lc-valueadd',`<div class="metric-row"><span class="text-muted">ค่าเสื่อม/ปี</span><span>${fmtCurrency(depPerYr)}</span></div><div class="metric-row"><span class="text-muted">ค่าเสื่อมสะสม</span><span class="text-red">${fmtCurrency(a.accDep)}</span></div><div class="metric-row"><span class="text-muted">มูลค่าสุทธิ (NBV)</span><span class="text-green fw-700">${fmtCurrency(a.nbv)}</span></div><div class="metric-row"><span class="text-muted">มูลค่าซาก</span><span>${fmtCurrency(a.salvage)}</span></div>`]
+  ];
+
+  content.forEach(([title,elId,body]) => {
+    document.getElementById(elId).innerHTML = `<div style="font-family:var(--font-display);font-weight:600;color:var(--orange);margin-bottom:8px">${title}</div>${body}`;
+  });
+}
+
+// ═══════════════════════════════════════════════════════════
+//  QR CODE
+// ═══════════════════════════════════════════════════════════
+let qrFilter = {q:'',dept:''};
+function renderQR() {
+  let list = [...assets];
+  if (qrFilter.q) { const q = qrFilter.q.toLowerCase(); list = list.filter(a=>`${a.id} ${a.name}`.toLowerCase().includes(q)); }
+  if (qrFilter.dept) list = list.filter(a=>a.dept===qrFilter.dept);
+  const grid = document.getElementById('qr-grid');
+  grid.innerHTML = list.map(a => `<div class="qr-card" id="qrcard-${a.id}">
+    <div class="qr-box"><div id="qr-${a.id}"></div></div>
+    <div class="qr-info">
+      <div style="font-family:var(--font-display);font-weight:700;font-size:15px;margin-bottom:4px">${a.name}</div>
+      <div class="metric-row"><span class="text-muted" style="font-size:12px">Asset ID</span><span class="tag">${a.id}</span></div>
+      <div class="metric-row"><span class="text-muted" style="font-size:12px">แผนก</span><span style="font-size:12px">${a.dept}</span></div>
+      <div class="metric-row"><span class="text-muted" style="font-size:12px">สถานที่</span><span style="font-size:12px">${a.location||'-'}</span></div>
+      <div class="metric-row"><span class="text-muted" style="font-size:12px">NBV</span><span style="font-size:12px" class="text-green">${fmtCurrency(a.nbv)}</span></div>
+      <div class="metric-row"><span class="text-muted" style="font-size:12px">สถานะ</span><span>${statusBadge(a.status)}</span></div>
+      <button class="btn btn-secondary btn-sm mt-12" onclick="printQR('${a.id}')">🖨 Print QR</button>
+    </div>
+  </div>`).join('');
+
+  list.forEach(a => {
+    setTimeout(() => {
+      const el = document.getElementById(`qr-${a.id}`);
+      if (!el || el.querySelector('canvas')) return;
+      new QRCode(el, {
+        text: JSON.stringify({id:a.id,name:a.name,dept:a.dept,location:a.location,status:a.status,nbv:a.nbv}),
+        width:100, height:100, colorDark:'#000000', colorLight:'#ffffff', correctLevel: QRCode.CorrectLevel.M
+      });
+    }, 100);
+  });
+}
+
+function filterQR(q) { qrFilter.q = q; renderQR(); }
+function filterQRDept(d) { qrFilter.dept = d; renderQR(); }
+
+function showQRSingle(id) { showView('qrcode'); qrFilter.q = id; document.querySelector('#view-qrcode .search-input').value = id; renderQR(); }
+function printQR(id) { window.print(); }
+function printAllQR() { window.print(); }
+
+// ═══════════════════════════════════════════════════════════
+//  INSPECTION
+// ═══════════════════════════════════════════════════════════
+function renderInspection() {
+  inspections = DB.get('inspections', assets.map(a=>({assetId:a.id,name:a.name,dept:a.dept,location:a.location,status:a.status,result:null,inspDate:null,inspector:null,remark:null})));
+  const done = inspections.filter(i=>i.result==='found').length;
+  const issue = inspections.filter(i=>i.result&&i.result!=='found').length;
+  const pending = inspections.filter(i=>!i.result).length;
+  document.getElementById('insp-done').textContent = done;
+  document.getElementById('insp-pending').textContent = pending;
+  document.getElementById('insp-issue').textContent = issue;
+  document.getElementById('insp-year').textContent = new Date().getFullYear();
+  const pct = inspections.length ? Math.round((done+issue)/inspections.length*100) : 0;
+  document.getElementById('insp-progress').style.width = pct+'%';
+  document.getElementById('insp-progress-label').textContent = `${done+issue} / ${inspections.length} รายการ (${pct}%)`;
+
+  document.getElementById('inspection-table').innerHTML = inspections.map(i => {
+    const resultBadge = !i.result ? '<span class="badge badge-gray">รอตรวจ</span>' :
+      i.result==='found' ? '<span class="badge badge-green">✅ พบ/ปกติ</span>' :
+      i.result==='moved' ? '<span class="badge badge-yellow">📍 ย้ายที่</span>' :
+      i.result==='damaged' ? '<span class="badge badge-orange">⚠ ชำรุด</span>' :
+      '<span class="badge badge-red">❌ ไม่พบ</span>';
+    return `<tr>
+      <td><span class="tag">${i.assetId}</span></td>
+      <td>${i.name}</td><td>${i.dept}</td><td>${i.location||'-'}</td>
+      <td>${statusBadge(i.status)}</td><td>${resultBadge}</td>
+      <td style="font-size:12px">${fmtDate(i.inspDate)}</td>
+      <td style="font-size:12px">${i.inspector||'-'}</td>
+      <td style="font-size:12px;color:var(--text3)">${i.remark||'-'}</td>
+      <td><button class="btn btn-secondary btn-sm" onclick="quickInspect('${i.assetId}')">ตรวจ</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function quickInspect(id) {
+  openModal('inspectModal');
+  document.getElementById('insp-assetid').value = id;
+  loadInspectAsset(id);
+}
+
+function loadInspectAsset(id) {
+  const a = assets.find(x=>x.id===id);
+  if (!a) { document.getElementById('inspect-info').style.display='none'; return; }
+  document.getElementById('inspect-info').style.display = 'block';
+  document.getElementById('inspect-asset-card').innerHTML = `
+    <div style="font-family:var(--font-display);font-weight:700;margin-bottom:8px">${a.name}</div>
+    <div class="metric-row"><span class="text-muted">แผนก</span><span>${a.dept}</span></div>
+    <div class="metric-row"><span class="text-muted">สถานที่ (ตามทะเบียน)</span><span>${a.location}</span></div>
+    <div class="metric-row"><span class="text-muted">สถานะ</span>${statusBadge(a.status)}</div>`;
+  document.getElementById('insp-result').onchange = function() {
+    document.getElementById('insp-location-row').style.display = this.value==='moved' ? 'grid' : 'none';
+  };
+}
+
+function saveInspection() {
+  const id = document.getElementById('insp-assetid').value;
+  const result = document.getElementById('insp-result').value;
+  const inspector = document.getElementById('insp-inspector').value;
+  const remark = document.getElementById('insp-remark').value;
+  const newLoc = document.getElementById('insp-new-location').value;
+  const newDept = document.getElementById('insp-new-dept').value;
+
+  const idx = inspections.findIndex(i=>i.assetId===id);
+  if (idx>=0) { inspections[idx].result=result; inspections[idx].inspDate=new Date().toISOString(); inspections[idx].inspector=inspector; inspections[idx].remark=remark; }
+  if (result==='moved' && newLoc) {
+    const ai = assets.findIndex(a=>a.id===id);
+    if(ai>=0){ assets[ai].location=newLoc; assets[ai].dept=newDept; DB.set('assets',assets); }
+    if(idx>=0){ inspections[idx].location=newLoc; }
+  }
+  DB.set('inspections', inspections);
+  closeModal('inspectModal');
+  renderInspection();
+  if (result==='missing'||result==='damaged') {
+    setTimeout(()=>alert(`🔔 แจ้งเตือน: สินทรัพย์ ${id} — ${result==='missing'?'ไม่พบ':'ชำรุด'}\n→ ระบบจะแจ้งฝ่ายบัญชีและผู้บริหาร (Demo)`), 200);
+  }
+}
+function exportInspection() {
+  const ws = XLSX.utils.json_to_sheet(inspections.map(i=>({'Asset ID':i.assetId,'ชื่อ':i.name,'แผนก':i.dept,'สถานที่':i.location,'ผลตรวจ':i.result||'รอตรวจ','วันที่':i.inspDate?fmtDate(i.inspDate):'-','ผู้ตรวจ':i.inspector||'-','หมายเหตุ':i.remark||'-'})));
+  const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Inspection');
+  XLSX.writeFile(wb,'Inspection_'+new Date().getFullYear()+'.xlsx');
+}
+
+// ═══════════════════════════════════════════════════════════
+//  VALUATION
+// ═══════════════════════════════════════════════════════════
+function renderValuation() {
+  const totalCost = assets.reduce((s,a)=>s+(a.cost||0),0);
+  const totalDep = assets.reduce((s,a)=>s+(a.accDep||0),0);
+  const totalNBV = assets.reduce((s,a)=>s+(a.nbv||0),0);
+  const ages = assets.filter(a=>a.buyDate).map(a=>(new Date()-new Date(a.buyDate))/(365.25*24*3600*1000));
+  const avgAge = ages.length ? (ages.reduce((s,v)=>s+v,0)/ages.length).toFixed(1) : 0;
+
+  document.getElementById('val-cost').textContent = fmtCurrency(totalCost);
+  document.getElementById('val-dep').textContent = fmtCurrency(totalDep);
+  document.getElementById('val-nbv').textContent = fmtCurrency(totalNBV);
+  document.getElementById('val-age').textContent = avgAge+' ปี';
+
+  destroyChart('dep');
+  const yrs = [1,2,3,4,5,6,7,8,9,10];
+  charts.dep = new Chart(document.getElementById('chartDepreciation'), {
+    type:'line',
+    data:{labels:yrs.map(y=>'ปีที่ '+y),datasets:[{label:'NBV เฉลี่ย',data:yrs.map(y=>Math.round(totalNBV*(1-y*0.09))),borderColor:'#14B8A6',fill:true,backgroundColor:'rgba(20,184,166,.1)',tension:.4},{label:'ค่าเสื่อมสะสม',data:yrs.map(y=>Math.round(totalDep+totalCost*0.09*y)),borderColor:'#EF4444',fill:false,tension:.4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8B949E'}}},scales:{x:{ticks:{color:'#8B949E'}},y:{ticks:{color:'#8B949E',callback:v=>'฿'+v.toLocaleString()},grid:{color:'#21262D'}}}}
+  });
+
+  destroyChart('eff');
+  charts.eff = new Chart(document.getElementById('chartEfficiency'), {
+    type:'bar',
+    data:{labels:assets.slice(0,8).map(a=>a.id),datasets:[{label:'ประสิทธิภาพ (%)',data:assets.slice(0,8).map(a=>a.efficiency||0),backgroundColor:assets.slice(0,8).map(a=>a.efficiency>=80?'#22C55E':a.efficiency>=60?'#EAB308':'#EF4444'),borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8B949E',font:{size:10}}},y:{ticks:{color:'#8B949E'},grid:{color:'#21262D'},max:100}}}
+  });
+
+  document.getElementById('valuation-table').innerHTML = assets.map(a => {
+    const ageYr = a.buyDate ? ((new Date()-new Date(a.buyDate))/(365.25*24*3600*1000)).toFixed(1) : '-';
+    const depYr = a.cost ? Math.round((a.cost-(a.salvage||0))/(a.life||10)) : 0;
+    return `<tr>
+      <td><span class="tag">${a.id}</span></td>
+      <td>${a.name}</td>
+      <td class="ff-mono">${fmtCurrency(a.cost)}</td>
+      <td style="font-size:12px">${fmtDate(a.buyDate)}</td>
+      <td>${a.life||'-'} ปี</td>
+      <td>${ageYr} ปี</td>
+      <td class="ff-mono">${fmtCurrency(depYr)}</td>
+      <td class="ff-mono text-red">${fmtCurrency(a.accDep)}</td>
+      <td class="ff-mono fw-700 text-green">${fmtCurrency(a.nbv)}</td>
+      <td>
+        <div style="font-size:12px;margin-bottom:3px">${a.efficiency||0}%</div>
+        <div class="progress" style="width:60px"><div class="progress-bar" style="width:${a.efficiency||0}%;background:${a.efficiency>=80?'var(--green)':a.efficiency>=60?'var(--yellow)':'var(--red)'}"></div></div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function calcDep() {
+  const cost = parseFloat(document.getElementById('dep-cost').value)||0;
+  const salvage = parseFloat(document.getElementById('dep-salvage').value)||0;
+  const life = parseInt(document.getElementById('dep-life').value)||10;
+  const method = document.getElementById('dep-method').value;
+  const yr = parseInt(document.getElementById('dep-year').value)||1;
+  if (!cost || !life) { document.getElementById('dep-result').innerHTML='<div class="text-muted text-center" style="font-size:13px">กรอกข้อมูลเพื่อคำนวณ</div>'; return; }
+  let depYr, accDep, nbv;
+  if (method==='sl') {
+    depYr = (cost-salvage)/life;
+    accDep = depYr * Math.min(yr, life);
+    nbv = Math.max(cost - accDep, salvage);
+  } else {
+    const rate = 2/life;
+    let book = cost;
+    accDep = 0;
+    for (let i=1;i<=yr&&i<=life;i++) { depYr = book*rate; accDep += depYr; book -= depYr; if(book<salvage){accDep-=(salvage-book);book=salvage;break;} }
+    nbv = Math.max(book, salvage);
+  }
+  document.getElementById('dep-result').innerHTML = `
+    <div class="metric-row"><span class="text-muted">ค่าเสื่อม ปีที่ ${yr}</span><span class="text-orange fw-700">${fmtCurrency(depYr)}</span></div>
+    <div class="metric-row"><span class="text-muted">ค่าเสื่อมสะสม</span><span class="text-red">${fmtCurrency(accDep)}</span></div>
+    <div class="metric-row"><span class="text-muted">มูลค่าสุทธิ (NBV)</span><span class="text-green fw-700">${fmtCurrency(nbv)}</span></div>
+    <div class="metric-row"><span class="text-muted">อัตราค่าเสื่อม</span><span>${method==='sl'?(100/life).toFixed(1):(200/life).toFixed(1)}% ต่อปี</span></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════
+//  WORK REQUEST
+// ═══════════════════════════════════════════════════════════
+let wrTabFilter = 'all';
+function renderWR() {
+  const open = workRequests.filter(w=>w.status==='open').length;
+  const inp = workRequests.filter(w=>w.status==='inprogress').length;
+  const closed = workRequests.filter(w=>w.status==='closed').length;
+  const mttrList = workRequests.filter(w=>w.mttr).map(w=>parseFloat(w.mttr));
+  const avgMTTR = mttrList.length ? (mttrList.reduce((s,v)=>s+v,0)/mttrList.length).toFixed(1) : 0;
+  document.getElementById('wr-open').textContent = open;
+  document.getElementById('wr-inprog').textContent = inp;
+  document.getElementById('wr-closed').textContent = closed;
+  document.getElementById('wr-mttr').textContent = avgMTTR;
+
+  destroyChart('wr');
+  charts.wr = new Chart(document.getElementById('chartWR'), {
+    type:'doughnut',data:{labels:['Open','In Progress','Closed'],datasets:[{data:[open,inp,closed],backgroundColor:['#F97316','#3B82F6','#22C55E'],borderWidth:0}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'bottom',labels:{color:'#8B949E'}}}}
+  });
+
+  destroyChart('mttr');
+  const days = Array.from({length:7},(_,i)=>{const d=new Date();d.setDate(d.getDate()-6+i);return d.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit'});});
+  charts.mttr = new Chart(document.getElementById('chartMTTR'), {
+    type:'line',data:{labels:days,datasets:[{label:'MTTR (hrs)',data:days.map(()=>(Math.random()*6+1).toFixed(1)),borderColor:'#F97316',fill:false,tension:.4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8B949E'}},y:{ticks:{color:'#8B949E'},grid:{color:'#21262D'}}}}
+  });
+
+  let list = wrTabFilter==='all' ? workRequests : workRequests.filter(w=>w.status===wrTabFilter);
+  document.getElementById('wr-table').innerHTML = list.map(w => `<tr>
+    <td><span class="tag">${w.id}</span></td>
+    <td><span class="tag">${w.assetId}</span></td>
+    <td>${w.desc}</td>
+    <td><span class="badge badge-${w.type==='Emergency'?'red':'blue'}">${w.type}</span></td>
+    <td style="font-size:12px">${w.reporter}</td>
+    <td style="font-size:12px">${w.assign}</td>
+    <td style="font-size:12px">${fmtDate(w.date)}</td>
+    <td style="font-size:12px">${fmtDate(w.closeDate)}</td>
+    <td style="font-family:var(--font-mono);font-size:12px">${w.mttr ? w.mttr+' h' : '-'}</td>
+    <td style="font-size:12px">${w.parts||'-'}</td>
+    <td>${w.status==='open'?'<span class="badge badge-orange">Open</span>':w.status==='inprogress'?'<span class="badge badge-blue">In Progress</span>':'<span class="badge badge-green">Closed</span>'}</td>
+    <td>
+      ${w.status!=='closed'?`<button class="btn btn-success btn-sm" onclick="closeWR('${w.id}')">ปิดงาน</button>`:''}
+      ${w.status==='open'?`<button class="btn btn-secondary btn-sm" onclick="progressWR('${w.id}')">รับงาน</button>`:''}
+    </td>
+  </tr>`).join('');
+}
+
+function filterWR(f, el) {
+  wrTabFilter = f;
+  document.querySelectorAll('#view-workrequest .tab').forEach(t=>t.classList.remove('active'));
+  el.classList.add('active');
+  renderWR();
+}
+
+function saveWR() {
+  const id = `WR-${String(workRequests.length+1).padStart(4,'0')}`;
+  workRequests.push({ id, assetId:document.getElementById('wr-asset').value, desc:document.getElementById('wr-desc').value,
+    type:document.getElementById('wr-type').value, reporter:document.getElementById('wr-reporter').value,
+    assign:document.getElementById('wr-assign').value, date:document.getElementById('wr-date').value||new Date().toISOString(),
+    parts:document.getElementById('wr-parts').value, status:'open', closeDate:null, mttr:null });
+  DB.set('wr', workRequests);
+  closeModal('addWRModal');
+  renderWR();
+}
+
+function closeWR(id) {
+  const idx = workRequests.findIndex(w=>w.id===id);
+  if(idx<0)return;
+  const closeDate = new Date();
+  const openDate = new Date(workRequests[idx].date);
+  const mttr = ((closeDate-openDate)/(3600*1000)).toFixed(1);
+  workRequests[idx].status='closed'; workRequests[idx].closeDate=closeDate.toISOString(); workRequests[idx].mttr=mttr;
+  DB.set('wr', workRequests); renderWR();
+}
+
+function progressWR(id) {
+  const idx = workRequests.findIndex(w=>w.id===id);
+  if(idx>=0){ workRequests[idx].status='inprogress'; DB.set('wr',workRequests); renderWR(); }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  OPERATION
+// ═══════════════════════════════════════════════════════════
+function renderOpt() {
+  destroyChart('avail');
+  const days = Array.from({length:14},(_,i)=>{const d=new Date();d.setDate(d.getDate()-13+i);return d.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit'});});
+  charts.avail = new Chart(document.getElementById('chartAvail'), {
+    type:'line',data:{labels:days,datasets:[{label:'Availability (%)',data:days.map(()=>(Math.random()*5+95).toFixed(1)),borderColor:'#22C55E',fill:true,backgroundColor:'rgba(34,197,94,.1)',tension:.4},{label:'Target (98%)',data:days.map(()=>98),borderColor:'#EAB308',borderDash:[4,4],fill:false}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8B949E'}}},scales:{x:{ticks:{color:'#8B949E'}},y:{ticks:{color:'#8B949E'},grid:{color:'#21262D'},min:90,max:100}}}
+  });
+
+  const logs = DB.get('optlogs', []);
+  document.getElementById('opt-table').innerHTML = logs.length ? logs.map(l=>`<tr>
+    <td style="font-size:12px">${fmtDate(l.datetime)}</td>
+    <td style="font-size:12px">${l.datetime?new Date(l.datetime).toLocaleTimeString('th-TH'):'-'}</td>
+    <td><span class="tag">${l.assetId}</span></td>
+    <td>${l.param}</td>
+    <td class="fw-600">${l.val}</td>
+    <td class="text-muted">${l.std}</td>
+    <td class="text-muted">${l.unit}</td>
+    <td>${l.status==='alert'?'<span class="badge badge-yellow">⚠ เกินมาตรฐาน</span>':l.status==='critical'?'<span class="badge badge-red">🔴 วิกฤต</span>':'<span class="badge badge-green">✅ ปกติ</span>'}</td>
+    <td style="font-size:12px">${l.person}</td>
+    <td style="font-size:12px;color:var(--text3)">${l.note||'-'}</td>
+  </tr>`).join('') : '<tr><td colspan="10" style="text-align:center;padding:24px;color:var(--text3)">ยังไม่มีข้อมูลการเดินระบบ — คลิก "+ บันทึกผลการเดินระบบ"</td></tr>';
+}
+
+function saveOpt() {
+  const logs = DB.get('optlogs', []);
+  logs.unshift({ assetId:document.getElementById('opt-asset').value, datetime:document.getElementById('opt-datetime').value,
+    param:document.getElementById('opt-param').value, val:document.getElementById('opt-val').value,
+    std:document.getElementById('opt-std').value, unit:document.getElementById('opt-unit').value,
+    person:document.getElementById('opt-person').value, status:document.getElementById('opt-status').value,
+    note:document.getElementById('opt-note').value });
+  DB.set('optlogs', logs);
+  closeModal('addOptModal');
+  renderOpt();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  PPM
+// ═══════════════════════════════════════════════════════════
+function renderPPM() {
+  const done = ppmList.filter(p=>p.status==='done').length;
+  const over = ppmList.filter(p=>p.status==='overdue').length;
+  const mtbfVals = ppmList.filter(p=>p.mtbf).map(p=>p.mtbf);
+  const avgMTBF = mtbfVals.length ? Math.round(mtbfVals.reduce((s,v)=>s+v,0)/mtbfVals.length) : 1240;
+  const rel = ppmList.length ? (done/ppmList.length*100).toFixed(1) : 94.2;
+  document.getElementById('ppm-mtbf').textContent = avgMTBF.toLocaleString();
+  document.getElementById('ppm-rel').textContent = rel;
+  document.getElementById('ppm-done').textContent = done;
+  document.getElementById('ppm-over').textContent = over;
+
+  destroyChart('mtbf');
+  const mos = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.'];
+  charts.mtbf = new Chart(document.getElementById('chartMTBF'), {
+    type:'bar',data:{labels:mos,datasets:[{label:'MTBF (hrs)',data:mos.map(()=>Math.floor(Math.random()*400)+900),backgroundColor:'#22C55E',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8B949E'}},y:{ticks:{color:'#8B949E'},grid:{color:'#21262D'}}}}
+  });
+
+  destroyChart('pmcomp');
+  charts.pmcomp = new Chart(document.getElementById('chartPMComp'), {
+    type:'bar',data:{labels:mos,datasets:[{label:'PM Compliance %',data:mos.map(()=>Math.floor(Math.random()*20)+80),backgroundColor:'#14B8A6',borderRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{ticks:{color:'#8B949E'}},y:{ticks:{color:'#8B949E'},grid:{color:'#21262D'},max:100}}}
+  });
+
+  document.getElementById('ppm-table').innerHTML = ppmList.map(p=>`<tr>
+    <td><span class="tag">${p.id}</span></td>
+    <td><span class="tag">${p.assetId}</span></td>
+    <td>${p.name}</td>
+    <td><span class="badge badge-blue">${p.freq}</span></td>
+    <td style="font-size:12px">${fmtDate(p.planDate)}</td>
+    <td style="font-size:12px">${p.status==='done'?fmtDate(p.planDate):'-'}</td>
+    <td style="font-size:12px">${p.assign}</td>
+    <td class="ff-mono">${p.measured||'-'}</td>
+    <td class="ff-mono text-muted">${p.std||'-'}</td>
+    <td>${p.status==='done'?'<span class="badge badge-green">✅ เสร็จ</span>':p.status==='overdue'?'<span class="badge badge-red">⏰ เกินกำหนด</span>':'<span class="badge badge-blue">📅 แผน</span>'}</td>
+    <td class="ff-mono">${p.mtbf?p.mtbf.toLocaleString():'-'}</td>
+    <td>${p.status!=='done'?`<button class="btn btn-success btn-sm" onclick="completePPM('${p.id}')">✅ เสร็จ</button>`:''}</td>
+  </tr>`).join('');
+}
+
+function savePPM() {
+  ppmList.push({ id:`PPM-${String(ppmList.length+1).padStart(4,'0')}`,
+    assetId:document.getElementById('ppm-asset').value, name:document.getElementById('ppm-name').value,
+    freq:document.getElementById('ppm-freq').value, planDate:document.getElementById('ppm-plan-date').value,
+    measured:document.getElementById('ppm-measured').value, std:document.getElementById('ppm-std').value,
+    assign:document.getElementById('ppm-assign').value, status:document.getElementById('ppm-status').value,
+    mtbf:Math.floor(Math.random()*400)+900 });
+  DB.set('ppm', ppmList); closeModal('addPPMModal'); renderPPM();
+}
+
+function completePPM(id) {
+  const idx = ppmList.findIndex(p=>p.id===id);
+  if(idx>=0){ ppmList[idx].status='done'; DB.set('ppm',ppmList); renderPPM(); }
+}
+function showPPMPlan(t) { alert(`แสดงแผน PPM — ${t==='month'?'รายเดือน':'รายปี'} (Demo)`); }
+
+// ═══════════════════════════════════════════════════════════
+//  MA CONTRACT
+// ═══════════════════════════════════════════════════════════
+function renderMA() {
+  const active = maList.filter(m=>m.status==='active').length;
+  const expiring = maList.filter(m=>m.status==='expiring').length;
+  const expired = maList.filter(m=>m.status==='expired').length;
+  const totalVal = maList.reduce((s,m)=>s+(m.value||0),0);
+  document.getElementById('ma-active').textContent = active;
+  document.getElementById('ma-expire').textContent = expiring;
+  document.getElementById('ma-expired').textContent = expired;
+  document.getElementById('ma-value').textContent = fmtCurrency(totalVal);
+
+  document.getElementById('ma-table').innerHTML = maList.map(m=>`<tr>
+    <td><span class="tag">${m.id}</span></td>
+    <td><span class="tag">${m.assetId}</span></td>
+    <td>${m.vendor}</td>
+    <td><span class="badge badge-blue">${m.type}</span></td>
+    <td style="font-size:12px">${fmtDate(m.start)}</td>
+    <td style="font-size:12px;color:${m.status==='expired'?'var(--red)':m.status==='expiring'?'var(--yellow)':'inherit'}">${fmtDate(m.end)}</td>
+    <td class="ff-mono">${fmtCurrency(m.value)}</td>
+    <td>${m.pmFreq}</td>
+    <td>${m.status==='active'?'<span class="badge badge-green">✅ Active</span>':m.status==='expiring'?'<span class="badge badge-yellow">⏰ ใกล้หมด</span>':'<span class="badge badge-red">❌ หมดอายุ</span>'}</td>
+    <td><button class="btn btn-secondary btn-sm" onclick="renewMA('${m.id}')">ต่ออายุ</button></td>
+  </tr>`).join('');
+}
+
+function saveMA() {
+  const start = document.getElementById('ma-start').value;
+  const end = document.getElementById('ma-end').value;
+  const daysLeft = end ? (new Date(end)-new Date())/(24*3600*1000) : 999;
+  maList.push({ id:`MA-${String(maList.length+1).padStart(4,'0')}`,
+    assetId:document.getElementById('ma-asset').value, vendor:document.getElementById('ma-vendor').value,
+    type:document.getElementById('ma-type').value, value:parseFloat(document.getElementById('ma-value-input').value)||0,
+    start, end, pmFreq:document.getElementById('ma-pmfreq').value,
+    contact:document.getElementById('ma-contact').value,
+    status: daysLeft<0?'expired':daysLeft<90?'expiring':'active' });
+  DB.set('ma', maList); closeModal('addMAModal'); renderMA();
+}
+function renewMA(id) { alert(`ต่ออายุสัญญา ${id} — Demo: เปิดฟอร์มต่ออายุ`); }
+
+// ═══════════════════════════════════════════════════════════
+//  INVENTORY
+// ═══════════════════════════════════════════════════════════
+function renderInventory() {
+  const skus = inventory.length;
+  const totalVal = inventory.reduce((s,p)=>s+(p.qty||0)*(p.price||0),0);
+  const belowROP = inventory.filter(p=>p.qty<=p.rop).length;
+  document.getElementById('inv-skus').textContent = skus;
+  document.getElementById('inv-value').textContent = fmtCurrency(totalVal);
+  document.getElementById('inv-rop').textContent = belowROP;
+  document.getElementById('inv-po').textContent = belowROP;
+
+  const logs = DB.get('invtx', []);
+  document.getElementById('inv-table').innerHTML = inventory.map(p=>`<tr>
+    <td><span class="tag">${p.id}</span></td>
+    <td>${p.name}</td>
+    <td>${p.type}</td>
+    <td style="font-size:12px">คลังกลาง</td>
+    <td><span class="fw-700" style="color:${p.qty<=p.rop?'var(--red)':'var(--text)'}">${p.qty}</span></td>
+    <td class="text-muted">${p.unit}</td>
+    <td class="ff-mono text-yellow">${p.rop}</td>
+    <td class="ff-mono text-blue">${p.eoq}</td>
+    <td class="ff-mono">${fmtCurrency(p.price)}</td>
+    <td class="ff-mono text-green">${fmtCurrency(p.qty*p.price)}</td>
+    <td>${p.qty<=p.rop?'<span class="badge badge-red">⚠ ต้องสั่งซื้อ</span>':'<span class="badge badge-green">✅ เพียงพอ</span>'}</td>
+    <td><button class="btn btn-secondary btn-sm btn-icon" onclick="deleteInventory('${p.id}')">🗑</button></td>
+  </tr>`).join('');
+
+  document.getElementById('inv-tx-table').innerHTML = logs.map(t=>`<tr>
+    <td style="font-size:12px">${fmtDate(t.date)}</td>
+    <td style="font-size:12px">${t.time}</td>
+    <td><span class="tag">${t.partId}</span></td>
+    <td>${t.partName}</td>
+    <td>${t.type==='receive'?'<span class="badge badge-green">รับเข้า</span>':'<span class="badge badge-red">จ่ายออก</span>'}</td>
+    <td class="fw-600">${t.type==='receive'?'+':'−'}${t.qty}</td>
+    <td style="font-size:12px">${t.ref}</td>
+    <td style="font-size:12px">${t.person}</td>
+    <td style="font-size:12px;color:var(--text3)">${t.note||'-'}</td>
+  </tr>`).join('');
+
+  destroyChart('rop');
+  charts.rop = new Chart(document.getElementById('chartROP'), {
+    type:'bar',
+    data:{labels:inventory.map(p=>p.id),datasets:[{label:'คงเหลือ',data:inventory.map(p=>p.qty),backgroundColor:inventory.map(p=>p.qty<=p.rop?'#EF4444':'#22C55E'),borderRadius:4},{label:'ROP',data:inventory.map(p=>p.rop),type:'line',borderColor:'#EAB308',fill:false,pointRadius:4}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{labels:{color:'#8B949E'}}},scales:{x:{ticks:{color:'#8B949E',font:{size:10}}},y:{ticks:{color:'#8B949E'},grid:{color:'#21262D'}}}}
+  });
+}
+
+function showInventoryTab(t, el) {
+  ['items','transactions','rop'].forEach(x=>{ const div=document.getElementById('inv-'+x); if(div) div.style.display='none'; });
+  document.getElementById('inv-'+t).style.display='block';
+  document.querySelectorAll('#view-inventory .tab').forEach(tb=>tb.classList.remove('active'));
+  el.classList.add('active');
+  if(t==='rop') { setTimeout(()=>{ destroyChart('rop'); renderInventory(); },100); }
+}
+
+function savePart() {
+  const id = document.getElementById('part-no').value.trim() || `PRT-${String(inventory.length+1).padStart(4,'0')}`;
+  inventory.push({ id, name:document.getElementById('part-name').value, type:document.getElementById('part-type').value,
+    unit:document.getElementById('part-unit').value, qty:parseInt(document.getElementById('part-qty').value)||0,
+    rop:parseInt(document.getElementById('part-rop').value)||5, eoq:parseInt(document.getElementById('part-eoq').value)||10,
+    price:parseFloat(document.getElementById('part-price').value)||0 });
+  DB.set('inv', inventory); closeModal('addPartModal'); renderInventory();
+}
+
+function saveReceive() {
+  const partId = document.getElementById('recv-part').value;
+  const qty = parseInt(document.getElementById('recv-qty').value)||0;
+  const idx = inventory.findIndex(p=>p.id===partId);
+  if(idx<0){alert('กรุณาเลือกอะไหล่');return;}
+  inventory[idx].qty += qty;
+  const logs = DB.get('invtx',[]);
+  const now = new Date();
+  logs.unshift({partId, partName:inventory[idx].name, type:'receive', qty, ref:document.getElementById('recv-ref').value, person:document.getElementById('recv-person').value, note:document.getElementById('recv-note').value, date:now.toISOString(), time:now.toLocaleTimeString('th-TH')});
+  DB.set('inv',inventory); DB.set('invtx',logs);
+  closeModal('receiveModal'); renderInventory();
+}
+
+function saveIssue() {
+  const partId = document.getElementById('issue-part').value;
+  const qty = parseInt(document.getElementById('issue-qty').value)||0;
+  const idx = inventory.findIndex(p=>p.id===partId);
+  if(idx<0){alert('กรุณาเลือกอะไหล่');return;}
+  if(inventory[idx].qty<qty){alert('จำนวนในคลังไม่เพียงพอ');return;}
+  inventory[idx].qty -= qty;
+  const logs = DB.get('invtx',[]);
+  const now = new Date();
+  logs.unshift({partId, partName:inventory[idx].name, type:'issue', qty, ref:document.getElementById('issue-ref').value, person:document.getElementById('issue-person').value, note:'', date:now.toISOString(), time:now.toLocaleTimeString('th-TH')});
+  DB.set('inv',inventory); DB.set('invtx',logs);
+  closeModal('issueModal'); renderInventory();
+}
+
+function deleteInventory(id) {
+  if(!confirm(`ลบ ${id}?`))return;
+  inventory = inventory.filter(p=>p.id!==id);
+  DB.set('inv',inventory); renderInventory();
+}
+
+// ═══════════════════════════════════════════════════════════
+//  AUTH — Login / Register / Session
+// ═══════════════════════════════════════════════════════════
+const ADMIN = { username:'enginno', password:'asset277', name:'Administrator', role:'admin', stakeholder:'PSD Engineering', email:'admin@psd.co.th' };
+let currentUser = null;
+
+function switchAuthTab(tab) {
+  document.getElementById('tab-login').classList.toggle('active', tab==='login');
+  document.getElementById('tab-reg').classList.toggle('active', tab==='register');
+  document.getElementById('pane-login').style.display = tab==='login' ? 'block' : 'none';
+  document.getElementById('pane-reg').style.display   = tab==='register' ? 'block' : 'none';
+}
+
+function doLogin() {
+  const u = document.getElementById('inp-user').value.trim();
+  const p = document.getElementById('inp-pass').value;
+  const errEl = document.getElementById('login-err');
+
+  // Admin check
+  if (u === ADMIN.username && p === ADMIN.password) { loginSuccess(ADMIN); return; }
+
+  // Registered users — check approval status
+  const users = DB.get('users', []);
+  const found = users.find(x => x.username === u && x.password === p);
+  if (found) {
+    if (found.status === 'pending') {
+      errEl.textContent = '⏳ บัญชีของคุณรอ Admin อนุมัติ — กรุณารอการยืนยัน';
+      errEl.classList.add('show');
+      setTimeout(() => errEl.classList.remove('show'), 4000);
+      return;
+    }
+    if (found.status === 'rejected') {
+      errEl.textContent = '❌ บัญชีของคุณถูกปฏิเสธ — กรุณาติดต่อ Admin';
+      errEl.classList.add('show');
+      setTimeout(() => errEl.classList.remove('show'), 4000);
+      return;
+    }
+    loginSuccess(found); return;
+  }
+
+  errEl.classList.add('show');
+  setTimeout(() => errEl.classList.remove('show'), 3000);
+}
+
+function loginSuccess(user) {
+  currentUser = user;
+  DB.set('currentUser', user);
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('sidebar-user-panel').style.display = 'flex';
+  document.getElementById('user-avatar-txt').textContent = user.name.charAt(0).toUpperCase();
+  document.getElementById('user-display-name').textContent = user.name;
+  document.getElementById('user-display-role').textContent = `${user.stakeholder} · ${user.role}`;
+  // Show Admin nav only for admin
+  document.getElementById('nav-admin').style.display = user.role === 'admin' ? 'flex' : 'none';
+  updateAdminBadge();
+  renderDashboard();
+}
+
+function doLogout() {
+  if (!confirm('ออกจากระบบ?')) return;
+  currentUser = null;
+  DB.set('currentUser', null);
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('sidebar-user-panel').style.display = 'none';
+  document.getElementById('inp-user').value = '';
+  document.getElementById('inp-pass').value = '';
+}
+
+function doRegister() {
+  const name  = document.getElementById('reg-name').value.trim();
+  const email = document.getElementById('reg-email').value.trim();
+  const stkEl = document.getElementById('reg-stk');
+  const stk   = stkEl.value;
+  const custom= document.getElementById('reg-custom').value.trim();
+  const user  = document.getElementById('reg-user').value.trim();
+  const pass  = document.getElementById('reg-pass').value;
+  const role  = document.getElementById('reg-role').value;
+  const errEl = document.getElementById('reg-err');
+  const okEl  = document.getElementById('reg-ok');
+
+  if (!name || !email || !stk || !user || !pass) {
+    errEl.textContent = 'กรุณากรอกข้อมูลให้ครบทุกช่อง *';
+    errEl.classList.add('show'); return;
+  }
+  if (pass.length < 6) {
+    errEl.textContent = 'Password ต้องมีอย่างน้อย 6 ตัวอักษร';
+    errEl.classList.add('show'); return;
+  }
+  const users = DB.get('users', []);
+  if (users.find(x => x.username === user)) {
+    errEl.textContent = 'Username นี้ถูกใช้แล้ว';
+    errEl.classList.add('show'); return;
+  }
+  const stakeholderLabel = stk === 'custom' ? custom : stkEl.selectedOptions[0].text;
+  users.push({ username:user, password:pass, name, email, stakeholder:stakeholderLabel, role, status:'pending', regDate:new Date().toISOString() });
+  DB.set('users', users);
+  errEl.classList.remove('show');
+  okEl.textContent = '✅ ลงทะเบียนสำเร็จ! กรุณารอ Admin อนุมัติก่อนเข้าใช้งาน';
+  okEl.classList.add('show');
+  updateAdminBadge();
+  setTimeout(() => { okEl.classList.remove('show'); switchAuthTab('login'); }, 3000);
+}
+
+// ═══════════════════════════════════════════════════════════
+//  ADMIN MANAGEMENT
+// ═══════════════════════════════════════════════════════════
+function renderAdminmgmt() {
+  const users = DB.get('users', []);
+  const pending  = users.filter(u => u.status === 'pending');
+  const approved = users.filter(u => u.status === 'approved');
+  const rejected = users.filter(u => u.status === 'rejected');
+
+  document.getElementById('adm-pending').textContent  = pending.length;
+  document.getElementById('adm-approved').textContent = approved.length;
+  document.getElementById('adm-rejected').textContent = rejected.length;
+  document.getElementById('adm-pending-badge').textContent = `${pending.length} รายการ`;
+
+  // Pending table
+  if (pending.length === 0) {
+    document.getElementById('pending-empty').style.display = 'block';
+    document.getElementById('pending-table-wrap').style.display = 'none';
+  } else {
+    document.getElementById('pending-empty').style.display = 'none';
+    document.getElementById('pending-table-wrap').style.display = 'block';
+    document.getElementById('pending-table-body').innerHTML = pending.map(u => `
+      <tr>
+        <td><span style="font-weight:600;color:var(--text)">${u.name}</span></td>
+        <td><span class="tag">${u.username}</span></td>
+        <td style="font-size:12px">${u.email}</td>
+        <td><span class="badge badge-orange">${u.stakeholder}</span></td>
+        <td><span class="badge badge-blue">${u.role}</span></td>
+        <td style="font-size:12px">${fmtDate(u.regDate)}</td>
+        <td>
+          <div class="flex gap-8">
+            <button class="btn btn-success btn-sm" onclick="approveUser('${u.username}')">✅ อนุมัติ</button>
+            <button class="btn btn-danger btn-sm"  onclick="rejectUser('${u.username}')">❌ ปฏิเสธ</button>
+          </div>
+        </td>
+      </tr>`).join('');
+  }
+
+  // All users table
+  document.getElementById('allusers-table-body').innerHTML = users.length ? users.map(u => {
+    const statusBadge = u.status === 'approved'
+      ? '<span class="badge badge-green">✅ อนุมัติ</span>'
+      : u.status === 'rejected'
+        ? '<span class="badge badge-red">❌ ปฏิเสธ</span>'
+        : '<span class="badge badge-yellow">⏳ รออนุมัติ</span>';
+    return `<tr>
+      <td><span style="font-weight:600;color:var(--text)">${u.name}</span></td>
+      <td><span class="tag">${u.username}</span></td>
+      <td style="font-size:12px">${u.email}</td>
+      <td style="font-size:12px">${u.stakeholder}</td>
+      <td><span class="badge badge-blue">${u.role}</span></td>
+      <td>${statusBadge}</td>
+      <td style="font-size:12px">${fmtDate(u.regDate)}</td>
+      <td>
+        <div class="flex gap-8">
+          ${u.status !== 'approved' ? `<button class="btn btn-success btn-sm" onclick="approveUser('${u.username}')">✅</button>` : ''}
+          ${u.status !== 'rejected' ? `<button class="btn btn-danger btn-sm"  onclick="rejectUser('${u.username}')">❌</button>` : ''}
+          <button class="btn btn-secondary btn-sm btn-icon" onclick="deleteUser('${u.username}')" title="ลบ">🗑</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('') : '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--text3)">ยังไม่มีผู้ลงทะเบียน</td></tr>';
+}
+
+function approveUser(username) {
+  const users = DB.get('users', []);
+  const idx = users.findIndex(u => u.username === username);
+  if (idx < 0) return;
+  users[idx].status = 'approved';
+  users[idx].approvedDate = new Date().toISOString();
+  users[idx].approvedBy = currentUser.name;
+  DB.set('users', users);
+  updateAdminBadge();
+  renderAdminmgmt();
+  alert(`✅ อนุมัติ "${users[idx].name}" (${users[idx].stakeholder}) เรียบร้อย\nผู้ใช้สามารถเข้าสู่ระบบได้แล้ว`);
+}
+
+function rejectUser(username) {
+  if (!confirm(`ปฏิเสธผู้ใช้ "${username}"?`)) return;
+  const users = DB.get('users', []);
+  const idx = users.findIndex(u => u.username === username);
+  if (idx < 0) return;
+  users[idx].status = 'rejected';
+  DB.set('users', users);
+  updateAdminBadge();
+  renderAdminmgmt();
+}
+
+function deleteUser(username) {
+  if (!confirm(`ลบผู้ใช้ "${username}" ออกจากระบบ?`)) return;
+  let users = DB.get('users', []);
+  users = users.filter(u => u.username !== username);
+  DB.set('users', users);
+  updateAdminBadge();
+  renderAdminmgmt();
+}
+
+function updateAdminBadge() {
+  const users = DB.get('users', []);
+  const pending = users.filter(u => u.status === 'pending').length;
+  const badge = document.getElementById('nb-admin');
+  if (badge) {
+    badge.textContent = pending;
+    badge.style.display = pending > 0 ? 'inline' : 'none';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════════
+seedData();
+assets = DB.get('assets', []);
+workRequests = DB.get('wr', []);
+ppmList = DB.get('ppm', []);
+maList = DB.get('ma', []);
+inventory = DB.get('inv', []);
+inspections = DB.get('inspections', []);
+
+populateAssetSelects();
+populatePartSelects();
+
+// Restore session
+const savedUser = DB.get('currentUser', null);
+if (savedUser && savedUser.username) {
+  loginSuccess(savedUser);
+}
+
+// Set default datetime for forms
+document.querySelectorAll('input[type="datetime-local"]').forEach(el => {
+  const now = new Date(); now.setMinutes(now.getMinutes()-now.getTimezoneOffset());
+  el.value = now.toISOString().slice(0,16);
+});
+</script>
+</body>
+</html>
